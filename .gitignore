@@ -1,0 +1,3 @@
+# Debug dumps from the capture hook -- never committed.
+.agent-logs/.hook-payloads.debug.jsonl
+.agent-logs/raw/

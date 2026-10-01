@@ -1,7 +1,4 @@
 {
-  "env": {
-    "AGENT_LOG_DEBUG": "1"
-  },
   "hooks": {
     "UserPromptSubmit": [
       {

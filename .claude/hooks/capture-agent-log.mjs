@@ -18,7 +18,13 @@ import path from "node:path";
 const MODE = process.argv[2] === "response" ? "response" : "prompt";
 const AUTHOR = "Ahmed-Ijaz-A";
 const TOOL = "claude-code";
-const DEBUG = process.env.AGENT_LOG_DEBUG === "1";
+/**
+ * Placeholder written when no model name is knowable yet -- only possible for
+ * the first prompt of a session, before any assistant entry exists. The Stop
+ * hook of that same turn backfills it. Never matches text in older logs, so
+ * backfilling can never rewrite an already-correct entry.
+ */
+const PENDING = "pending";
 
 function readStdin() {
   try {
@@ -89,7 +95,7 @@ function finalResponse(lines) {
   return { text: buffer.join("\n\n").trim(), model };
 }
 
-/** Most recent model seen in the transcript, for labelling prompts. */
+/** Most recent model seen in a set of transcript lines. */
 function lastModel(lines) {
   for (let i = lines.length - 1; i >= 0; i--) {
     try {
@@ -98,6 +104,30 @@ function lastModel(lines) {
     } catch {
       /* ignore */
     }
+  }
+  return null;
+}
+
+/**
+ * Last-resort fallback for a response whose own transcript yielded nothing:
+ * take the newest model recorded in any sibling transcript of the project.
+ */
+function lastModelFromSiblings(transcriptPath) {
+  if (!transcriptPath) return null;
+  try {
+    const dir = path.dirname(transcriptPath);
+    const files = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith(".jsonl"))
+      .map((f) => path.join(dir, f))
+      .map((f) => ({ f, m: fs.statSync(f).mtimeMs }))
+      .sort((a, b) => b.m - a.m);
+    for (const { f } of files) {
+      const model = lastModel(readTranscript(f));
+      if (model) return model;
+    }
+  } catch {
+    /* ignore */
   }
   return null;
 }
@@ -188,14 +218,6 @@ function main() {
   const now = new Date();
   const iso = now.toISOString();
 
-  if (DEBUG) {
-    fs.mkdirSync(dir, { recursive: true });
-    fs.appendFileSync(
-      path.join(dir, ".hook-payloads.debug.jsonl"),
-      JSON.stringify({ at: iso, mode: MODE, payload }) + "\n"
-    );
-  }
-
   const lines = readTranscript(payload.transcript_path);
 
   let text;
@@ -203,7 +225,10 @@ function main() {
   if (MODE === "prompt") {
     text = payload.prompt ?? "";
     if (!text.trim()) return;
-    model = payload.model || lastModel(lines) || "unknown";
+    // Deliberately no cross-session guess here: on a session's first prompt
+    // the true model is not yet knowable, so write the placeholder and let
+    // this same turn's Stop hook backfill the real name.
+    model = payload.model || lastModel(lines) || PENDING;
   } else {
     // The Stop payload hands us the final assistant message outright, which is
     // authoritative. finalResponse() is the fallback for payloads without it.
@@ -211,8 +236,12 @@ function main() {
     text = (payload.last_assistant_message || r.text || "").trim();
     if (!text) return;
     // No model field in the hook payload (verified against a real dump), so
-    // this has to come from the transcript.
-    model = r.model || lastModel(lines) || "unknown";
+    // this has to come from the transcript, which by now definitely has one.
+    model =
+      r.model ||
+      lastModel(lines) ||
+      lastModelFromSiblings(payload.transcript_path) ||
+      PENDING;
   }
 
   const file = logPath(dir, sessionId, now);
@@ -234,7 +263,15 @@ function main() {
       `Author: \`${AUTHOR}\`\n\n---\n\n`,
   };
 
-  const { fm, body } = parsed;
+  const { fm } = parsed;
+  // Backfill this session's placeholders now that the model is known. Anchored
+  // to a whole line so it only ever rewrites an entry's `model:` header -- the
+  // logged text itself can quote the string `model: pending` in prose, and a
+  // plain substring replace would corrupt that. Real model names are untouched.
+  let body = parsed.body;
+  if (MODE === "response" && model !== PENDING) {
+    body = body.replace(new RegExp(`^model: ${PENDING}$`, "gm"), `model: ${model}`);
+  }
   const prompts = (body.match(/^\[LOG_ENTRY type=PROMPT /gm) || []).length;
   const responses = (body.match(/^\[LOG_ENTRY type=RESPONSE /gm) || []).length;
 
@@ -250,30 +287,17 @@ function main() {
     if (responses >= prompts) return;
     num = responses + 1;
   }
-  fm.model = model;
+  if (model !== PENDING) fm.model = model;
 
   fs.writeFileSync(
     file,
     render(fm, body + entryBlock(MODE.toUpperCase(), num, shortId, iso, model, text))
-  );
-
-  // Append-only mirror: tamper-evident copy, independent of the .md rewrite.
-  fs.mkdirSync(path.join(dir, "raw"), { recursive: true });
-  fs.appendFileSync(
-    path.join(dir, "raw", `${sessionId}.jsonl`),
-    JSON.stringify({
-      type: MODE.toUpperCase(),
-      num,
-      session: sessionId,
-      timestamp: iso,
-      model,
-      text,
-    }) + "\n"
   );
 }
 
 try {
   main();
 } catch (e) {
-  if (DEBUG) console.error("[capture-agent-log] " + (e && e.stack));
+  // A capture failure must never block the turn; surface it on stderr only.
+  console.error("[capture-agent-log] " + (e && e.stack));
 }
