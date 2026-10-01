@@ -205,10 +205,14 @@ function main() {
     if (!text.trim()) return;
     model = payload.model || lastModel(lines) || "unknown";
   } else {
+    // The Stop payload hands us the final assistant message outright, which is
+    // authoritative. finalResponse() is the fallback for payloads without it.
     const r = finalResponse(lines);
-    if (!r.text) return;
-    text = r.text;
-    model = r.model || payload.model || lastModel(lines) || "unknown";
+    text = (payload.last_assistant_message || r.text || "").trim();
+    if (!text) return;
+    // No model field in the hook payload (verified against a real dump), so
+    // this has to come from the transcript.
+    model = r.model || lastModel(lines) || "unknown";
   }
 
   const file = logPath(dir, sessionId, now);
