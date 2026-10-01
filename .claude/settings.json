@@ -1,0 +1,27 @@
+{
+  "env": {
+    "AGENT_LOG_DEBUG": "1"
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/capture-agent-log.mjs\" prompt"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/capture-agent-log.mjs\" response"
+          }
+        ]
+      }
+    ]
+  }
+}
