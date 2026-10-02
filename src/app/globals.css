@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/**
+ * Kartly design tokens.
+ *
+ * Kartly's own brand: a deep teal-ink with a warm amber accent. Deliberately
+ * not Amazon's navy-and-orange.
+ */
+@theme {
+  --color-ink-50: #f2f7f7;
+  --color-ink-100: #dceaea;
+  --color-ink-200: #b8d5d6;
+  --color-ink-300: #8ab8ba;
+  --color-ink-500: #3d7a7d;
+  --color-ink-700: #1f4e52;
+  --color-ink-800: #163b3e;
+  --color-ink-900: #0f2a2c;
+
+  --color-amber-accent: #f2a541;
+  --color-amber-accent-dark: #d98821;
+
+  --color-surface: #ffffff;
+  --color-surface-muted: #f6f7f6;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 0.75rem;
+}
+
+body {
+  background-color: var(--color-surface-muted);
+  color: var(--color-ink-900);
+}

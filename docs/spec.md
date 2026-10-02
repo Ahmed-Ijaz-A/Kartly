@@ -22,7 +22,7 @@ Each step has one job:
 | Step | Job | Done when |
 | --- | --- | --- |
 | **Browse** | Land, understand what the store sells, get into a category in one click | Home shows category tiles + a real product rail, all linking somewhere real |
-| **Search** | Find a product among ~80 by keyword, then narrow it | Query + category/price/rating filters + sort, all in the URL, server-rendered |
+| **Search** | Find a product among ~500 by keyword, then narrow it | Query + category/price/rating filters + sort, all in the URL, server-rendered |
 | **Product** | Decide to buy | Gallery, price, rating summary, description, stock, reviews, add-to-cart, save |
 | **Cart** | Confirm what I'm buying and what it costs | Line items, quantity change, remove, live totals, persists across sessions |
 | **Checkout** | Pay | Address form → Stripe test payment → order created exactly once |
@@ -39,12 +39,12 @@ Each step has one job:
 ## What we build
 
 **Catalogue & browse**
-- ~80 hand-authored products across 6 categories, with brand, price, rating, review count, stock and filterable attributes
+- ~500 generated products across 10 categories, with brand, price, rating, review count, stock and filterable attributes (deterministic seed script)
 - Home: category tiles, a featured rail, a deals rail
 - Category pages, sharing the search results component
 
 **Search**
-- Keyword search over title, brand and description (Postgres full-text, with a trigram/ILIKE fallback for short queries)
+- Keyword search over title, brand and description (Postgres full-text, weighted title > brand > description)
 - Filters: category, price range, minimum rating, in-stock
 - Sort: relevance, price asc/desc, rating, newest
 - Result count, active-filter chips with individual clear, empty state that suggests a way out, pagination
@@ -107,7 +107,7 @@ Each step has one job:
 | Deploy problems discovered at hour 23 | Deploy to Vercel on roadmap step 2, before any feature exists. Every later step ships to a URL that already works. |
 | Stripe webhook can't reach localhost | Build checkout against the Stripe CLI listener from the start; the deployed webhook is configured in the same step. |
 | Double orders from webhook retries | Order creation is idempotent on payment intent id, enforced by a unique constraint — not by application logic alone. |
-| Seed data too thin to make search look real | ~80 products with genuinely varied attributes is a scoped, early step, not an afterthought. |
+| Seed data too thin to make search look real | 500 products across 10 categories, generated with varied attributes, seeded in step 1. |
 | Scope creep from the recon's density | This cut list is the contract. Anything not listed under "what we build" needs an explicit decision to add. |
 
 ## How it will be judged, and where the time goes

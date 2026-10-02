@@ -33,7 +33,7 @@ for everything that would otherwise need operating.
 - Serverless Postgres, works with Vercel's execution model without connection-pool exhaustion.
 - Branching gives a throwaway database per environment if needed.
 - **Money is `integer` cents everywhere.** No `float`, no `money` type. A `numeric` column would still invite float maths in JS.
-- Full-text search via a generated `tsvector` column and a GIN index — enough for ~80 products, and no second service to run.
+- Full-text search via a weighted expression GIN index (title > brand > description) — enough for ~500 products, and no second service to run.
 
 ## Drizzle ORM
 
@@ -90,6 +90,6 @@ Email + password, our own tables — no third-party provider to configure.
 | --- | --- |
 | Redux / Zustand / React Query | Server Components plus URL state remove the need. |
 | A component library | Override fights cost more than the primitives save at this size. |
-| Separate search service | Postgres full-text is sufficient for ~80 products. |
+| Separate search service | Postgres full-text is sufficient for ~500 products. |
 | Docker / local Postgres | Neon from the first commit; one database, no drift. |
 | Redis | Nothing in the loop needs a second datastore. |

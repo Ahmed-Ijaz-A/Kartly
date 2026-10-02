@@ -14,7 +14,7 @@ gets cut if time runs out — never the loop.
 
 ## Phase 0 — Foundations
 
-### Step 1 — Project skeleton
+### Step 1 — Project skeleton  ✅ *(done; merged with steps 3 and 4, and part of 6)*
 Next.js (App Router, TypeScript strict) + Tailwind with Kartly's tokens.
 Root layout, header shell, footer, `/` placeholder. ESLint, Prettier, scripts.
 `.env.example` with names only; `.env.local` gitignored.
@@ -24,15 +24,16 @@ Root layout, header shell, footer, `/` placeholder. ESLint, Prettier, scripts.
 Connect the repo, set env vars in the dashboard, ship the skeleton.
 **Verify:** the live URL renders the page from step 1. *Nothing else proceeds until this is green.*
 
-### Step 3 — Database and schema
+### Step 3 — Database and schema  ✅ *(done as part of step 1)*
 Neon project. Drizzle schema for all nine tables, with money as integer cents,
 `orders.payment_intent_id` unique, and the products `tsvector` + GIN index.
 First migration generated and applied.
 **Verify:** migration applies cleanly to Neon; a trivial server-side query returns from the deployed URL.
 
-### Step 4 — Seed the catalogue
-~80 products across 6 categories: brand, price in cents, rating, review count,
-stock, image URLs, filterable attributes. Seeded reviews. Re-runnable script.
+### Step 4 — Seed the catalogue  ✅ *(written as part of step 1; needs running against Neon)*
+~500 products across 10 categories: brand, price in cents, rating, review
+count, stock, image URLs, filterable attributes. Seeded reviews. Deterministic
+and re-runnable.
 **Verify:** row counts correct; prices are integers; spot-check variety across categories.
 
 ---
