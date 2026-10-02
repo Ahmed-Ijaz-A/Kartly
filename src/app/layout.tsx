@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Geist } from "next/font/google";
+
+import { SearchBox } from "@/components/search-box";
 
 import "./globals.css";
 
@@ -32,21 +35,40 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${geistSans.variable} min-h-screen font-sans antialiased`}
       >
-        <header className="bg-ink-900 text-ink-50">
-          <div className="mx-auto flex max-w-7xl items-center gap-6 px-4 py-3">
-            <Link href="/" className="text-xl font-bold tracking-tight">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-amber-accent focus:px-4 focus:py-2 focus:text-ink-900"
+        >
+          Skip to content
+        </a>
+
+        <header className="sticky top-0 z-40 bg-ink-900 text-ink-50">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
+            <Link
+              href="/"
+              className="text-xl font-bold tracking-tight"
+              aria-label="Kartly home"
+            >
               Kart<span className="text-amber-accent">ly</span>
             </Link>
-            {/* Search, cart and account arrive in roadmap steps 7, 14 and 12. */}
-            <nav className="ml-auto flex items-center gap-5 text-sm">
-              <span className="text-ink-300">Search — step 7</span>
+
+            {/* useSearchParams needs a Suspense boundary in the App Router. */}
+            <div className="order-3 w-full sm:order-2 sm:w-auto sm:flex-1">
+              <Suspense fallback={<div className="h-10 rounded-md bg-ink-800" />}>
+                <SearchBox />
+              </Suspense>
+            </div>
+
+            <nav className="order-2 ml-auto flex items-center gap-5 text-sm sm:order-3">
               <span className="text-ink-300">Account — step 12</span>
               <span className="text-ink-300">Cart — step 14</span>
             </nav>
           </div>
         </header>
 
-        <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
+        <main id="main" className="mx-auto max-w-7xl px-4 py-8">
+          {children}
+        </main>
 
         <footer className="mt-16 border-t border-ink-100 bg-surface">
           <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-ink-700">

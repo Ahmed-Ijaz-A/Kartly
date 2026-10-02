@@ -20,7 +20,7 @@ Root layout, header shell, footer, `/` placeholder. ESLint, Prettier, scripts.
 `.env.example` with names only; `.env.local` gitignored.
 **Verify:** `npm run dev` serves a branded page; lint and typecheck pass.
 
-### Step 2 — Deploy to Vercel
+### Step 2 — Deploy to Vercel  ✅
 Connect the repo, set env vars in the dashboard, ship the skeleton.
 **Verify:** the live URL renders the page from step 1. *Nothing else proceeds until this is green.*
 
@@ -30,7 +30,7 @@ Neon project. Drizzle schema for all nine tables, with money as integer cents,
 First migration generated and applied.
 **Verify:** migration applies cleanly to Neon; a trivial server-side query returns from the deployed URL.
 
-### Step 4 — Seed the catalogue  ✅ *(written as part of step 1; needs running against Neon)*
+### Step 4 — Seed the catalogue  ✅ *(run against Neon: 500 products, 10 categories)*
 ~500 products across 10 categories: brand, price in cents, rating, review
 count, stock, image URLs, filterable attributes. Seeded reviews. Deterministic
 and re-runnable.
@@ -40,38 +40,43 @@ and re-runnable.
 
 ## Phase 1 — Browse and find
 
-### Step 5 — Product card + grid
+### Step 5 — Product card + grid  ✅
 Shared card (image, title, brand, rating, price) and a responsive grid.
 **Verify:** a temporary page lists seeded products; grid reflows at 375px.
 
-### Step 6 — Home page
+### Step 6 — Home page  ✅
 Category tiles, featured rail, deals rail — every tile and card links somewhere real.
 **Verify:** on the live URL, no dead links; looks intentional at mobile and desktop.
 
-### Step 7 — Search results page
+### Step 7 — Search results page  ✅
 `/search` reading `q`, `category`, `min`, `max`, `rating`, `sort`, `page` from the URL.
 Full-text keyword search, server-rendered. Result count, pagination.
 **Verify:** a query returns sensible results; changing the URL by hand changes them; back button is correct.
 
-### Step 8 — Filters and sort UI
+### Step 8 — Filters and sort UI  ✅
 Sidebar filters and a sort control that write to the URL. Active-filter chips
 with individual clear, and an empty state offering a way out.
 **Verify:** filters compose; chips clear individually; a deliberately empty result set is handled gracefully; shared URL reproduces the exact view.
 
-### Step 9 — Category pages
-`/category/[slug]` reusing the search results component.
-**Verify:** home tiles land on populated category pages that still filter and sort.
+### Step 9 — Category pages  ✅ *(folded into search)*
+Category tiles link to `/search?category=<slug>` rather than a separate
+`/category/[slug]` route. Search already does filtering, sorting and
+pagination, so a dedicated route would have duplicated all of it for no user-
+visible gain. Revisit only if category pages need their own copy or SEO
+treatment.
+**Verify:** home tiles land on a populated, filtered search view that still
+sorts and paginates.
 
 ---
 
 ## Phase 2 — Decide and collect
 
-### Step 10 — Product detail page
+### Step 10 — Product detail page  ✅
 Gallery with thumbnails, title, brand, rating summary, price, stock, quantity
 selector, description, attribute table. Breadcrumbs.
 **Verify:** a card click reaches the right product; gallery works; stock state is honest.
 
-### Step 11 — Reviews (display)
+### Step 11 — Reviews (display)  ✅
 Review list and rating histogram on the product page, from seeded data.
 **Verify:** histogram matches the underlying rows; a product with no reviews reads correctly.
 

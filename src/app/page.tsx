@@ -1,184 +1,205 @@
 import Image from "next/image";
-import { desc } from "drizzle-orm";
+import Link from "next/link";
+import { Suspense } from "react";
 
-import { formatCents, discountPercent } from "@/lib/money";
+import { ProductGrid } from "@/components/product-card";
+import { EmptyState, RailSkeleton } from "@/components/skeletons";
+import {
+  getCategories,
+  getDealProducts,
+  getFeaturedProducts,
+  getProductCount,
+  getTopRatedProducts,
+  type ProductCard,
+} from "@/db/queries";
 
 export const dynamic = "force-dynamic";
 
-type HomeData = {
-  categoryCount: number;
-  productCount: number;
-  products: {
-    id: number;
-    title: string;
-    brand: string;
-    priceCents: number;
-    listPriceCents: number | null;
-    rating: number;
-    reviewCount: number;
-    imageUrl: string;
-  }[];
-};
-
-/**
- * Step 1 verification page: proves the Next.js app can reach Neon through
- * Drizzle and render real rows.
- *
- * The database module throws on import when DATABASE_URL is missing, so this
- * is imported dynamically and the failure is rendered as setup instructions
- * rather than a stack trace.
- */
-async function loadHomeData(): Promise<
-  { ok: true; data: HomeData } | { ok: false; message: string }
-> {
-  try {
-    const { db, schema } = await import("@/db");
-
-    const [products, allCategories] = await Promise.all([
-      db
-        .select({
-          id: schema.products.id,
-          title: schema.products.title,
-          brand: schema.products.brand,
-          priceCents: schema.products.priceCents,
-          listPriceCents: schema.products.listPriceCents,
-          rating: schema.products.rating,
-          reviewCount: schema.products.reviewCount,
-          imageUrl: schema.products.imageUrl,
-        })
-        .from(schema.products)
-        .orderBy(desc(schema.products.rating))
-        .limit(12),
-      db.select({ id: schema.categories.id }).from(schema.categories),
-    ]);
-
-    const counted = await db.$count(schema.products);
-
-    return {
-      ok: true,
-      data: {
-        categoryCount: allCategories.length,
-        productCount: counted,
-        products,
-      },
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      message: error instanceof Error ? error.message : "Unknown database error",
-    };
-  }
+function Hero({ productCount, categoryCount }: { productCount: number; categoryCount: number }) {
+  return (
+    <section className="overflow-hidden rounded-card bg-ink-900 px-6 py-12 text-ink-50 sm:px-10 sm:py-16">
+      <p className="text-sm font-medium uppercase tracking-widest text-amber-accent">
+        Kartly
+      </p>
+      <h1 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight sm:text-5xl">
+        Everyday things, chosen well
+      </h1>
+      <p className="mt-4 max-w-xl text-base text-ink-200">
+        {productCount.toLocaleString("en-US")} products across {categoryCount}{" "}
+        categories — electronics, home, outdoors, books and more. No endless
+        aisles, just things worth owning.
+      </p>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Link
+          href="/search"
+          className="rounded-md bg-amber-accent px-5 py-2.5 text-sm font-semibold text-ink-900 transition hover:bg-amber-accent-dark"
+        >
+          Browse everything
+        </Link>
+        <Link
+          href="/search?sort=price-asc&instock=1"
+          className="rounded-md border border-ink-300 px-5 py-2.5 text-sm font-semibold text-ink-50 transition hover:bg-ink-800"
+        >
+          Best value first
+        </Link>
+      </div>
+    </section>
+  );
 }
 
-export default async function HomePage() {
-  const result = await loadHomeData();
+async function CategoryTiles() {
+  const categories = await getCategories();
 
-  if (!result.ok) {
+  if (categories.length === 0) {
     return (
-      <section className="rounded-card border border-amber-accent bg-surface p-6">
-        <h1 className="text-xl font-semibold">Database not connected yet</h1>
-        <p className="mt-2 text-sm text-ink-700">
-          The app is running, but it could not read from Postgres. Finish the
-          setup steps in the README:
-        </p>
-        <ol className="mt-4 list-decimal space-y-1 pl-5 text-sm text-ink-700">
-          <li>
-            Copy <code>.env.example</code> to <code>.env.local</code> and set{" "}
-            <code>DATABASE_URL</code> to your Neon connection string.
-          </li>
-          <li>
-            Run <code>npm run db:migrate</code> to create the tables.
-          </li>
-          <li>
-            Run <code>npm run db:seed</code> to load the catalogue.
-          </li>
-        </ol>
-        <p className="mt-4 rounded bg-surface-muted p-3 font-mono text-xs text-ink-800">
-          {result.message}
-        </p>
-      </section>
+      <EmptyState
+        title="No categories yet"
+        message="Run npm run db:seed to load the catalogue."
+      />
     );
   }
 
-  const { categoryCount, productCount, products } = result.data;
+  return (
+    <section>
+      <h2 className="mb-4 text-lg font-semibold text-ink-900">Shop by category</h2>
+      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        {categories.map((category) => (
+          <li
+            key={category.id}
+            className="group relative overflow-hidden rounded-card bg-surface shadow-sm transition hover:shadow-md"
+          >
+            <div className="relative aspect-4/3 bg-surface-muted">
+              <Image
+                src={category.imageUrl}
+                alt=""
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                className="object-cover transition duration-300 group-hover:scale-105"
+              />
+            </div>
+            <div className="p-3">
+              <h3 className="text-sm font-semibold text-ink-900">
+                {/* Category tiles route into search, which already handles
+                    filtering, sorting and pagination. A dedicated
+                    /category/[slug] route would duplicate all of it. */}
+                <Link
+                  href={`/search?category=${category.slug}`}
+                  className="after:absolute after:inset-0"
+                >
+                  {category.name}
+                </Link>
+              </h3>
+              <p className="mt-1 line-clamp-2 text-xs text-ink-700">
+                {category.description}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function Rail({
+  title,
+  description,
+  href,
+  products,
+  priorityCount = 0,
+}: {
+  title: string;
+  description: string;
+  href: string;
+  products: ProductCard[];
+  priorityCount?: number;
+}) {
+  if (products.length === 0) return null;
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-card bg-ink-800 px-6 py-8 text-ink-50">
-        <h1 className="text-3xl font-bold tracking-tight">Everyday things, chosen well</h1>
-        <p className="mt-2 max-w-2xl text-ink-200">
-          Kartly is a general merchandise store. Browse, search, and check out —
-          the whole loop, built in 24 hours.
-        </p>
-        <p className="mt-4 text-sm text-ink-300">
-          Connected to Postgres: <strong className="text-amber-accent">{productCount}</strong>{" "}
-          products across <strong className="text-amber-accent">{categoryCount}</strong>{" "}
-          categories.
-        </p>
-      </section>
+    <section>
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-semibold text-ink-900">{title}</h2>
+          <p className="text-sm text-ink-700">{description}</p>
+        </div>
+        <Link
+          href={href}
+          className="text-sm font-medium text-ink-700 underline underline-offset-4 hover:text-ink-900"
+        >
+          See all
+        </Link>
+      </div>
+      <ProductGrid products={products} priorityCount={priorityCount} />
+    </section>
+  );
+}
 
-      <section>
-        <h2 className="mb-4 text-lg font-semibold">Top rated right now</h2>
+async function FeaturedRail() {
+  const products = await getFeaturedProducts(4);
+  return (
+    <Rail
+      title="Picked by us"
+      description="A short list we would actually recommend."
+      href="/search?sort=rating"
+      products={products}
+      priorityCount={4}
+    />
+  );
+}
 
-        {products.length === 0 ? (
-          <p className="rounded-card bg-surface p-6 text-sm text-ink-700">
-            No products yet. Run <code>npm run db:seed</code> to load the catalogue.
-          </p>
-        ) : (
-          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {products.map((product) => {
-              const percentOff = product.listPriceCents
-                ? discountPercent(product.priceCents, product.listPriceCents)
-                : 0;
+async function DealsRail() {
+  const products = await getDealProducts(4);
+  return (
+    <Rail
+      title="Biggest savings"
+      description="Ranked by percentage off, not by sticker size."
+      href="/search?sort=price-asc"
+      products={products}
+    />
+  );
+}
 
-              return (
-                <li
-                  key={product.id}
-                  className="flex flex-col overflow-hidden rounded-card bg-surface shadow-sm"
-                >
-                  <div className="relative aspect-square bg-surface-muted">
-                    <Image
-                      src={product.imageUrl}
-                      alt={product.title}
-                      fill
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex flex-1 flex-col gap-1 p-3">
-                    <p className="text-xs text-ink-500">{product.brand}</p>
-                    <p className="line-clamp-2 text-sm font-medium">{product.title}</p>
-                    <p className="text-xs text-ink-700">
-                      {/* Locale pinned, as in lib/money.ts: an unpinned
-                          toLocaleString would format differently on the server
-                          and in the visitor's browser once this card becomes a
-                          Client Component. */}
-                      {product.rating.toFixed(1)} ★ (
-                      {product.reviewCount.toLocaleString("en-US")})
-                    </p>
-                    <p className="mt-auto pt-2">
-                      <span className="text-base font-semibold">
-                        {formatCents(product.priceCents)}
-                      </span>
-                      {percentOff > 0 && product.listPriceCents ? (
-                        <>
-                          {" "}
-                          <span className="text-xs text-ink-500 line-through">
-                            {formatCents(product.listPriceCents)}
-                          </span>{" "}
-                          <span className="text-xs font-medium text-amber-accent-dark">
-                            −{percentOff}%
-                          </span>
-                        </>
-                      ) : null}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+async function TopRatedRail() {
+  const products = await getTopRatedProducts(4);
+  return (
+    <Rail
+      title="Highly rated, widely bought"
+      description="Strong ratings with enough reviews to mean something."
+      href="/search?sort=rating"
+      products={products}
+    />
+  );
+}
+
+async function HeroSection() {
+  const [productCount, categories] = await Promise.all([getProductCount(), getCategories()]);
+  return <Hero productCount={productCount} categoryCount={categories.length} />;
+}
+
+export default function HomePage() {
+  return (
+    <div className="space-y-12">
+      <Suspense
+        fallback={<div className="h-64 animate-pulse rounded-card bg-ink-100" />}
+      >
+        <HeroSection />
+      </Suspense>
+
+      <Suspense fallback={<RailSkeleton />}>
+        <CategoryTiles />
+      </Suspense>
+
+      <Suspense fallback={<RailSkeleton />}>
+        <FeaturedRail />
+      </Suspense>
+
+      <Suspense fallback={<RailSkeleton />}>
+        <DealsRail />
+      </Suspense>
+
+      <Suspense fallback={<RailSkeleton />}>
+        <TopRatedRail />
+      </Suspense>
     </div>
   );
 }
