@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { AddToCartStub } from "@/components/add-to-cart-stub";
+import { AddToCart } from "@/components/add-to-cart";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductGrid } from "@/components/product-card";
 import { RatingStars } from "@/components/rating-stars";
@@ -259,7 +259,7 @@ export default async function ProductPage({
             </div>
           </div>
 
-          <AddToCartStub stock={product.stock} />
+          <AddToCart productId={product.id} stock={product.stock} />
 
           <div>
             <h2 className="text-sm font-semibold text-ink-900">About this item</h2>

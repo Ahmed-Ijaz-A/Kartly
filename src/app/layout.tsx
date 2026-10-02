@@ -5,6 +5,7 @@ import { Geist } from "next/font/google";
 
 import { logoutAction } from "@/app/actions/auth";
 import { SearchBox } from "@/components/search-box";
+import { getCartCount } from "@/lib/cart";
 import { getSession } from "@/lib/session";
 
 import "./globals.css";
@@ -26,7 +27,7 @@ export default async function RootLayout({
   // Read once per request, here, from the verified session cookie only --
   // this is purely for the header greeting, not an auth decision. Each
   // protected page still calls requireSession() itself.
-  const session = await getSession();
+  const [session, cartCount] = await Promise.all([getSession(), getCartCount()]);
 
   return (
     <html lang="en">
@@ -83,7 +84,14 @@ export default async function RootLayout({
                   Sign in
                 </Link>
               )}
-              <span className="text-ink-300">Cart — step 14</span>
+              <Link href="/cart" className="relative flex items-center gap-1 hover:text-amber-accent">
+                Cart
+                {cartCount > 0 && (
+                  <span className="ml-0.5 rounded-full bg-amber-accent px-1.5 py-0.5 text-xs font-bold leading-none text-ink-900">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
             </nav>
           </div>
         </header>

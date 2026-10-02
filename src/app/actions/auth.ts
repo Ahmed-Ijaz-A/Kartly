@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { db, schema } from "@/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, destroySession } from "@/lib/session";
+import { mergeAnonymousCart } from "@/lib/cart";
 
 export type AuthFormState = { error: string } | null;
 
@@ -55,6 +56,7 @@ export async function registerAction(
     .values({ name, email, passwordHash: hashPassword(password) })
     .returning({ id: schema.users.id, name: schema.users.name });
 
+  await mergeAnonymousCart(user.id);
   await createSession({ userId: user.id, name: user.name });
   redirect(safeNextPath(formData.get("next")));
 }
@@ -80,6 +82,7 @@ export async function loginAction(
     return { error: "Invalid email or password." };
   }
 
+  await mergeAnonymousCart(user.id);
   await createSession({ userId: user.id, name: user.name });
   redirect(safeNextPath(formData.get("next")));
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ProductCard as ProductCardData } from "@/db/queries";
 import { discountPercent, formatCents } from "@/lib/money";
 
+import { AddToCart } from "./add-to-cart";
 import { RatingStars } from "./rating-stars";
 
 export function ProductCard({
@@ -72,6 +73,8 @@ export function ProductCard({
             </span>
           )}
         </p>
+
+        <AddToCart productId={product.id} stock={product.stock} compact />
       </div>
     </li>
   );
