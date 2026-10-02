@@ -6,14 +6,18 @@ import { AddToCart } from "@/components/add-to-cart";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductGrid } from "@/components/product-card";
 import { RatingStars } from "@/components/rating-stars";
+import { ReviewForm } from "@/components/review-form";
 import { RailSkeleton } from "@/components/skeletons";
+import { WishlistToggle } from "@/components/wishlist-toggle";
 import {
   getProductBySlug,
   getProductReviews,
   getRelatedProducts,
   getReviewHistogram,
+  getWishlistedProductIds,
 } from "@/db/queries";
 import { discountPercent, formatCents } from "@/lib/money";
+import { getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -58,10 +62,12 @@ function StockLine({ stock }: { stock: number }) {
   return <p className="text-sm font-medium text-ink-700">In stock</p>;
 }
 
-async function Reviews({ productId, rating, reviewCount }: {
+async function Reviews({ productId, rating, reviewCount, signedIn, productSlug }: {
   productId: number;
   rating: number;
   reviewCount: number;
+  signedIn: boolean;
+  productSlug: string;
 }) {
   const [reviews, histogram] = await Promise.all([
     getProductReviews(productId),
@@ -110,10 +116,6 @@ async function Reviews({ productId, rating, reviewCount }: {
               No written reviews yet for this product.
             </p>
           )}
-
-          <p className="rounded-md bg-ink-100 px-3 py-2 text-xs text-ink-800">
-            Writing a review arrives in roadmap step 23.
-          </p>
         </div>
 
         {reviews.length > 0 ? (
@@ -138,6 +140,23 @@ async function Reviews({ productId, rating, reviewCount }: {
           <p className="text-sm text-ink-700">
             Nobody has written about this one yet. The rating above comes from
             aggregate scores.
+          </p>
+        )}
+      </div>
+
+      <div className="border-t border-ink-100 pt-6">
+        <h3 className="text-base font-semibold text-ink-900">Write a review</h3>
+        {signedIn ? (
+          <ReviewForm productId={productId} />
+        ) : (
+          <p className="mt-2 text-sm text-ink-700">
+            <Link
+              href={`/login?next=/product/${productSlug}`}
+              className="font-medium text-ink-900 underline underline-offset-4 hover:text-ink-700"
+            >
+              Sign in
+            </Link>{" "}
+            to write a review.
           </p>
         )}
       </div>
@@ -176,6 +195,11 @@ export default async function ProductPage({
   const product = await getProductBySlug(slug);
 
   if (!product) notFound();
+
+  const session = await getSession();
+  const wishlisted = session
+    ? (await getWishlistedProductIds(session.userId)).includes(product.id)
+    : false;
 
   const images = [product.imageUrl, ...product.extraImages].filter(Boolean);
   const attributes = parseAttributes(product.attributes);
@@ -261,6 +285,13 @@ export default async function ProductPage({
 
           <AddToCart productId={product.id} stock={product.stock} />
 
+          <WishlistToggle
+            productId={product.id}
+            initialSaved={wishlisted}
+            signedIn={!!session}
+            signInHref={`/login?next=/product/${product.slug}`}
+          />
+
           <div>
             <h2 className="text-sm font-semibold text-ink-900">About this item</h2>
             <p className="mt-2 text-sm leading-relaxed text-ink-800">
@@ -289,6 +320,8 @@ export default async function ProductPage({
           productId={product.id}
           rating={product.rating}
           reviewCount={product.reviewCount}
+          signedIn={!!session}
+          productSlug={product.slug}
         />
       </Suspense>
 

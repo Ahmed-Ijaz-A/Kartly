@@ -3,7 +3,7 @@ import { and, asc, desc, eq, gte, lte, ne, sql, type SQL } from "drizzle-orm";
 import { PAGE_SIZE, type SearchFilters } from "@/lib/search-params";
 
 import { db } from ".";
-import { categories, products, reviews } from "./schema";
+import { categories, orderItems, orders, products, reviews, wishlistItems } from "./schema";
 
 /** Columns every product card needs. Kept in one place so grids stay uniform. */
 const productCardColumns = {
@@ -276,4 +276,132 @@ export async function getRelatedProducts(
     .where(and(eq(products.categoryId, categoryId), ne(products.id, excludeProductId)))
     .orderBy(desc(products.rating))
     .limit(limit);
+}
+
+/* ------------------------------------------------------------------ orders */
+
+export type OrderSummary = {
+  id: number;
+  totalCents: number;
+  createdAt: Date;
+  itemCount: number;
+};
+
+/** Only paid orders count as order history — a pending checkout isn't a placed order yet. */
+export async function getUserOrders(userId: number): Promise<OrderSummary[]> {
+  return db
+    .select({
+      id: orders.id,
+      totalCents: orders.totalCents,
+      createdAt: orders.createdAt,
+      // Grouping by the primary key makes every other orders.* column
+      // functionally dependent, so Postgres allows selecting them unaggregated.
+      itemCount: sql<number>`coalesce(sum(${orderItems.quantity}), 0)::int`,
+    })
+    .from(orders)
+    .leftJoin(orderItems, eq(orderItems.orderId, orders.id))
+    .where(and(eq(orders.userId, userId), eq(orders.status, "paid")))
+    .groupBy(orders.id)
+    .orderBy(desc(orders.createdAt));
+}
+
+export type OrderDetail = {
+  id: number;
+  subtotalCents: number;
+  shippingCents: number;
+  taxCents: number;
+  totalCents: number;
+  shippingName: string;
+  shippingLine1: string;
+  shippingLine2: string;
+  shippingCity: string;
+  shippingPostalCode: string;
+  shippingCountry: string;
+  createdAt: Date;
+  items: {
+    id: number;
+    titleSnapshot: string;
+    imageUrlSnapshot: string;
+    unitPriceCents: number;
+    quantity: number;
+    productSlug: string | null;
+  }[];
+};
+
+/** Ownership-checked: returns null for another user's order id, same as a 404. */
+export async function getUserOrder(orderId: number, userId: number): Promise<OrderDetail | null> {
+  const [order] = await db
+    .select({
+      id: orders.id,
+      subtotalCents: orders.subtotalCents,
+      shippingCents: orders.shippingCents,
+      taxCents: orders.taxCents,
+      totalCents: orders.totalCents,
+      shippingName: orders.shippingName,
+      shippingLine1: orders.shippingLine1,
+      shippingLine2: orders.shippingLine2,
+      shippingCity: orders.shippingCity,
+      shippingPostalCode: orders.shippingPostalCode,
+      shippingCountry: orders.shippingCountry,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .where(and(eq(orders.id, orderId), eq(orders.userId, userId), eq(orders.status, "paid")))
+    .limit(1);
+  if (!order) return null;
+
+  const items = await db
+    .select({
+      id: orderItems.id,
+      titleSnapshot: orderItems.titleSnapshot,
+      imageUrlSnapshot: orderItems.imageUrlSnapshot,
+      unitPriceCents: orderItems.unitPriceCents,
+      quantity: orderItems.quantity,
+      productSlug: products.slug,
+    })
+    .from(orderItems)
+    .leftJoin(products, eq(orderItems.productId, products.id))
+    .where(eq(orderItems.orderId, order.id));
+
+  return { ...order, items };
+}
+
+/* --------------------------------------------------------------- wishlist */
+
+export type WishlistLine = {
+  id: number;
+  productId: number;
+  slug: string;
+  title: string;
+  brand: string;
+  priceCents: number;
+  imageUrl: string;
+  stock: number;
+};
+
+export async function getWishlistItems(userId: number): Promise<WishlistLine[]> {
+  return db
+    .select({
+      id: wishlistItems.id,
+      productId: products.id,
+      slug: products.slug,
+      title: products.title,
+      brand: products.brand,
+      priceCents: products.priceCents,
+      imageUrl: products.imageUrl,
+      stock: products.stock,
+    })
+    .from(wishlistItems)
+    .innerJoin(products, eq(wishlistItems.productId, products.id))
+    .where(eq(wishlistItems.userId, userId))
+    .orderBy(desc(wishlistItems.createdAt));
+}
+
+/** Product ids the user has saved, for rendering the save toggle's initial state. */
+export async function getWishlistedProductIds(userId: number): Promise<number[]> {
+  const rows = await db
+    .select({ productId: wishlistItems.productId })
+    .from(wishlistItems)
+    .where(eq(wishlistItems.userId, userId));
+  return rows.map((row) => row.productId);
 }

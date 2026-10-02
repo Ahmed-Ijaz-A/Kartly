@@ -73,6 +73,12 @@ export default async function RootLayout({
                   <Link href="/account" className="hover:text-amber-accent">
                     Hello, {session.name.split(" ")[0]}
                   </Link>
+                  <Link href="/orders" className="hover:text-amber-accent">
+                    Orders
+                  </Link>
+                  <Link href="/wishlist" className="hover:text-amber-accent">
+                    Wishlist
+                  </Link>
                   <form action={logoutAction}>
                     <button type="submit" className="text-ink-300 hover:text-amber-accent">
                       Sign out

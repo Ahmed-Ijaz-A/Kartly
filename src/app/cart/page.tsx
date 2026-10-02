@@ -3,15 +3,19 @@ import Link from "next/link";
 
 import { CartLineControls } from "@/components/cart-line-controls";
 import { EmptyState } from "@/components/skeletons";
+import { WishlistToggle } from "@/components/wishlist-toggle";
+import { getWishlistedProductIds } from "@/db/queries";
 import { calculateCartTotals, FREE_SHIPPING_THRESHOLD_CENTS, getCartLines } from "@/lib/cart";
 import { formatCents } from "@/lib/money";
+import { getSession } from "@/lib/session";
 
 export const metadata = { title: "Your cart — Kartly" };
 export const dynamic = "force-dynamic";
 
 export default async function CartPage() {
-  const lines = await getCartLines();
+  const [lines, session] = await Promise.all([getCartLines(), getSession()]);
   const totals = calculateCartTotals(lines);
+  const wishlistedIds = session ? new Set(await getWishlistedProductIds(session.userId)) : new Set<number>();
 
   if (lines.length === 0) {
     return (
@@ -45,6 +49,14 @@ export default async function CartPage() {
                 <Link href={`/product/${line.slug}`} className="font-semibold text-ink-900 hover:underline">{line.title}</Link>
                 <p className="mt-1 text-sm text-ink-700">{formatCents(line.priceCents)} each</p>
                 <CartLineControls itemId={line.id} quantity={line.quantity} stock={line.stock} />
+                <div className="mt-2">
+                  <WishlistToggle
+                    productId={line.productId}
+                    initialSaved={wishlistedIds.has(line.productId)}
+                    signedIn={!!session}
+                    signInHref="/login?next=/cart"
+                  />
+                </div>
               </div>
               <p className="shrink-0 text-right font-semibold text-ink-900">{formatCents(line.priceCents * line.quantity)}</p>
             </article>

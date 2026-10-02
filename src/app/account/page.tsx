@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { logoutAction } from "@/app/actions/auth";
@@ -51,8 +52,16 @@ export default async function AccountPage() {
       </dl>
 
       <ul className="mt-4 divide-y divide-ink-100 rounded-card bg-surface text-sm shadow-sm">
-        <li className="px-6 py-3 text-ink-500">Orders — step 21</li>
-        <li className="px-6 py-3 text-ink-500">Wishlist — step 22</li>
+        <li className="px-6 py-3">
+          <Link href="/orders" className="font-medium text-ink-900 hover:underline">
+            Order history
+          </Link>
+        </li>
+        <li className="px-6 py-3">
+          <Link href="/wishlist" className="font-medium text-ink-900 hover:underline">
+            Wishlist
+          </Link>
+        </li>
       </ul>
 
       <form action={logoutAction} className="mt-6">
