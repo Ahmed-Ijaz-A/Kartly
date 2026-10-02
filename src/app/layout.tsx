@@ -43,7 +43,7 @@ export default function RootLayout({
         </a>
 
         <header className="sticky top-0 z-40 bg-ink-900 text-ink-50">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
+          <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
             <Link
               href="/"
               className="text-xl font-bold tracking-tight"
@@ -66,12 +66,12 @@ export default function RootLayout({
           </div>
         </header>
 
-        <main id="main" className="mx-auto max-w-7xl px-4 py-8">
+        <main id="main" className="mx-auto max-w-[1600px] px-4 py-8">
           {children}
         </main>
 
         <footer className="mt-16 border-t border-ink-100 bg-surface">
-          <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-ink-700">
+          <div className="mx-auto max-w-[1600px] px-4 py-8 text-sm text-ink-700">
             Kartly — a 24-hour build. Product imagery is placeholder photography
             from Lorem Picsum.
           </div>

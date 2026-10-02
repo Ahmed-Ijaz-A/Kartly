@@ -25,7 +25,7 @@ export function ProductCard({
           src={product.imageUrl}
           alt={product.title}
           fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
           className="object-cover transition duration-300 group-hover:scale-105"
           priority={priority}
         />
@@ -60,12 +60,14 @@ export function ProductCard({
           <span>({product.reviewCount.toLocaleString("en-US")})</span>
         </p>
 
-        <p className="mt-auto pt-2">
-          <span className="text-base font-semibold text-ink-900">
+        {/* Price leads the card: bigger and bolder than the title above it,
+            with the original price present but visibly secondary. */}
+        <p className="mt-auto flex items-baseline gap-2 pt-2">
+          <span className="text-2xl font-extrabold tracking-tight text-ink-900">
             {formatCents(product.priceCents)}
           </span>
           {percentOff > 0 && product.listPriceCents && (
-            <span className="ml-2 text-xs text-ink-500 line-through">
+            <span className="text-sm text-ink-500 line-through">
               {formatCents(product.listPriceCents)}
             </span>
           )}
@@ -83,7 +85,7 @@ export function ProductGrid({
   priorityCount?: number;
 }) {
   return (
-    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {products.map((product, index) => (
         <ProductCard
           key={product.id}

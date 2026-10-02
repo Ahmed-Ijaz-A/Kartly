@@ -1,27 +1,56 @@
 /**
  * Kartly catalogue seed.
  *
- * Generates ~500 products across 10 categories, plus reviews.
+ * Generates 500 products across 10 categories, plus reviews.
  *
- * Deterministic: a seeded PRNG drives every price, rating and stock level, so
- * re-running produces the same catalogue rather than a different one. Safe to
- * run repeatedly -- it clears the catalogue tables first.
+ * Deterministic: a seeded PRNG drives every fallback price, stock level and
+ * review selection, so re-running produces the same catalogue rather than a
+ * different one. Safe to run repeatedly -- it clears the catalogue tables
+ * first.
  *
- * Data sources are free and allowed:
- *   - Product text is generated here from hand-written brand and model names.
- *     Nothing is scraped, and no real retailer's copy is reproduced.
- *   - Images come from Lorem Picsum (https://picsum.photos), which serves
- *     Unsplash photography for free placeholder use. URLs are seeded by slug,
- *     so a given product always gets the same image.
+ * Data source: the Amazon Reviews 2023 dataset (McAuley Lab, UC San Diego),
+ * fetched by scripts/fetch-amazon-dataset.ts into
+ * scripts/amazon-products.json. Real listings -- title, brand/author,
+ * description and a multi-angle photo set per product, all already matched
+ * to each other because they come from the same real listing. That's a
+ * deliberate trade-off, not an oversight: this uses real brand names and
+ * real product photography, where Kartly otherwise uses its own invented
+ * brands. See that script's header for the full reasoning and the licensing
+ * basis (an academic dataset, free to use for coursework).
+ *
+ * Reviews stay separately generated (REVIEW_TEMPLATES below) -- synthetic,
+ * not from the dataset.
  */
 import { config } from "dotenv";
 
 config({ path: ".env.local" });
 
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 
 import * as schema from "../src/db/schema";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+type AmazonProduct = {
+  parentAsin: string;
+  title: string;
+  brand: string;
+  description: string;
+  priceCents: number | null;
+  rating: number | null;
+  reviewCount: number | null;
+  imageUrl: string;
+  extraImages: string[];
+};
+
+const AMAZON_PRODUCTS: Record<string, AmazonProduct[]> = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "amazon-products.json"), "utf8"),
+);
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -50,7 +79,6 @@ function makeRandom(seed: number) {
 const random = makeRandom(20261002);
 
 const randomInt = (min: number, max: number) => min + Math.floor(random() * (max - min + 1));
-const pick = <T>(items: readonly T[]): T => items[Math.floor(random() * items.length)];
 
 function pickSome<T>(items: readonly T[], count: number): T[] {
   const pool = [...items];
@@ -61,6 +89,10 @@ function pickSome<T>(items: readonly T[], count: number): T[] {
   return out;
 }
 
+function pick<T>(items: readonly T[]): T {
+  return items[Math.floor(random() * items.length)];
+}
+
 function slugify(value: string): string {
   return value
     .toLowerCase()
@@ -69,236 +101,81 @@ function slugify(value: string): string {
     .slice(0, 150);
 }
 
-/** Lorem Picsum, seeded by slug so each product keeps a stable image. */
-const imageUrl = (slug: string, variant: number, size = 800) =>
-  `https://picsum.photos/seed/kartly-${slug}-${variant}/${size}/${size}`;
-
 /* ------------------------------------------------------------ source data */
 
-type CategorySeed = {
-  slug: string;
-  name: string;
-  description: string;
-  brands: readonly string[];
-  /** [product noun, low price in cents, high price in cents] */
-  items: readonly (readonly [string, number, number])[];
-  modifiers: readonly string[];
-  features: readonly string[];
-  materials: readonly string[];
-};
+type CategorySeed = { slug: string; name: string; description: string };
 
 const CATEGORIES: readonly CategorySeed[] = [
   {
     slug: "electronics",
     name: "Electronics",
     description: "Audio, displays, and everyday tech that earns its desk space.",
-    brands: ["Nordvane", "Kestrel Audio", "Lumenix", "Pulseform", "Atlas Labs", "Verity"],
-    items: [
-      ["Wireless Headphones", 4900, 34900],
-      ["Bluetooth Speaker", 2900, 19900],
-      ["Noise Cancelling Earbuds", 3900, 24900],
-      ["4K Monitor", 17900, 69900],
-      ["Mechanical Keyboard", 5900, 21900],
-      ["Wireless Mouse", 1900, 9900],
-      ["Webcam", 3400, 17900],
-      ["Portable Power Bank", 2400, 11900],
-      ["USB-C Hub", 2900, 12900],
-      ["Smart Doorbell", 6900, 24900],
-    ],
-    modifiers: ["Pro", "Studio", "Mini", "Max", "Air", "Core", "Elite"],
-    features: ["Bluetooth 5.3", "USB-C charging", "40h battery", "Low latency", "Fast charge"],
-    materials: ["Aluminium", "ABS plastic", "Recycled polymer", "Anodised alloy"],
   },
   {
     slug: "home-kitchen",
     name: "Home & Kitchen",
     description: "Cookware, small appliances and the quiet workhorses of a kitchen.",
-    brands: ["Hearthline", "Copperlane", "Marlow & Finch", "Granby", "Stonebrook"],
-    items: [
-      ["Cast Iron Skillet", 2900, 12900],
-      ["Stand Mixer", 14900, 54900],
-      ["Espresso Machine", 12900, 89900],
-      ["Chef Knife", 3900, 22900],
-      ["Nonstick Cookware Set", 7900, 39900],
-      ["Electric Kettle", 2400, 13900],
-      ["Air Fryer", 5900, 27900],
-      ["Blender", 3900, 29900],
-      ["Food Storage Set", 1900, 8900],
-      ["Cutting Board", 1400, 7900],
-    ],
-    modifiers: ["Classic", "Professional", "Compact", "Everyday", "Heritage"],
-    features: ["Dishwasher safe", "Oven safe to 500F", "BPA free", "Cool-touch handle"],
-    materials: ["Cast iron", "Stainless steel", "Borosilicate glass", "Bamboo", "Ceramic"],
   },
   {
     slug: "sports-outdoors",
     name: "Sports & Outdoors",
     description: "Training gear and kit for getting outside.",
-    brands: ["Ironridge", "Summitline", "Trailform", "Northbound", "Grit & Grain"],
-    items: [
-      ["Adjustable Dumbbell Set", 9900, 59900],
-      ["Yoga Mat", 1900, 9900],
-      ["Resistance Band Set", 1400, 5900],
-      ["Kettlebell", 2900, 16900],
-      ["Hiking Backpack", 4900, 24900],
-      ["Insulated Water Bottle", 1900, 5900],
-      ["Camping Tent", 8900, 44900],
-      ["Foam Roller", 1900, 6900],
-      ["Jump Rope", 1200, 4900],
-      ["Trekking Poles", 2900, 14900],
-    ],
-    modifiers: ["Trail", "Summit", "Daily", "Expedition", "Alpine"],
-    features: ["Rust resistant", "Non-slip grip", "Packs flat", "Weatherproof"],
-    materials: ["Cast iron", "Ripstop nylon", "Natural rubber", "Anodised aluminium"],
   },
   {
     slug: "books",
     name: "Books",
     description: "Fiction, reference and the kind of book you actually finish.",
-    brands: ["Redthorn Press", "Harbour House", "Ink & Argument", "Verso Lane"],
-    items: [
-      ["Hardcover Novel", 1200, 3200],
-      ["Cookbook", 1900, 4900],
-      ["Photography Collection", 2900, 7900],
-      ["Field Guide", 1400, 3900],
-      ["Paperback Thriller", 900, 2200],
-      ["Design Reference", 2400, 6900],
-      ["Biography", 1400, 3600],
-      ["Essay Collection", 1200, 3200],
-      ["Children's Picture Book", 900, 2400],
-      ["Pocket Notebook", 700, 2400],
-    ],
-    modifiers: ["Illustrated", "Annotated", "Collector's", "Revised", "Pocket"],
-    features: ["Sewn binding", "Acid-free paper", "Ribbon marker", "Foil stamped"],
-    materials: ["Hardcover", "Paperback", "Linen bound", "Cloth bound"],
   },
   {
     slug: "clothing",
     name: "Clothing",
     description: "Everyday wear built to survive the wash.",
-    brands: ["Fieldstone", "Marrow", "Oakcut", "Weft & Warp", "Common Thread"],
-    items: [
-      ["Merino Crew Sweater", 4900, 18900],
-      ["Oxford Shirt", 3900, 12900],
-      ["Chino Trousers", 4400, 14900],
-      ["Rain Shell", 7900, 29900],
-      ["Wool Socks", 1200, 3900],
-      ["Denim Jacket", 6900, 24900],
-      ["Everyday T-Shirt", 1900, 5900],
-      ["Knit Beanie", 1400, 4900],
-      ["Canvas Shorts", 2900, 8900],
-      ["Leather Belt", 2400, 9900],
-    ],
-    modifiers: ["Heavyweight", "Lightweight", "Relaxed", "Tailored", "Everyday"],
-    features: ["Machine washable", "Reinforced seams", "Breathable", "Pre-shrunk"],
-    materials: ["Merino wool", "Organic cotton", "Linen", "Recycled polyester", "Denim"],
   },
   {
     slug: "beauty",
     name: "Beauty",
     description: "Skincare and grooming without the ten-step routine.",
-    brands: ["Alder & Ash", "Lumen Skin", "Petal Lab", "Still Hours"],
-    items: [
-      ["Daily Moisturiser", 1900, 6900],
-      ["Vitamin C Serum", 2400, 8900],
-      ["Gentle Cleanser", 1400, 4900],
-      ["Mineral Sunscreen", 1900, 4900],
-      ["Lip Balm Set", 900, 2900],
-      ["Hair Oil", 1600, 5400],
-      ["Shaving Cream", 1200, 3900],
-      ["Clay Face Mask", 1600, 4900],
-      ["Hand Cream", 1100, 3400],
-      ["Makeup Brush Set", 2400, 9900],
-    ],
-    modifiers: ["Daily", "Overnight", "Sensitive", "Replenishing", "Clarifying"],
-    features: ["Fragrance free", "Dermatologist tested", "Non-comedogenic", "Cruelty free"],
-    materials: ["Glass bottle", "Recycled tube", "Aluminium tin", "Pump bottle"],
   },
   {
     slug: "toys-games",
     name: "Toys & Games",
     description: "Board games, puzzles and things that survive a six-year-old.",
-    brands: ["Tinderbox Games", "Little Harbour", "Meadowpeg", "Brightside"],
-    items: [
-      ["Strategy Board Game", 2900, 7900],
-      ["1000 Piece Jigsaw", 1400, 3900],
-      ["Wooden Block Set", 2400, 7900],
-      ["Card Game", 1200, 3200],
-      ["Plush Bear", 1600, 5400],
-      ["Model Building Kit", 2900, 12900],
-      ["Science Kit", 2400, 8900],
-      ["Ride-On Toy", 4900, 18900],
-      ["Puzzle Cube", 900, 3200],
-      ["Art Supply Set", 1900, 6900],
-    ],
-    modifiers: ["Deluxe", "Family", "Junior", "Collector's", "Travel"],
-    features: ["Ages 6+", "2-5 players", "Storage box included", "Non-toxic finish"],
-    materials: ["FSC birch ply", "Recycled card", "Organic cotton", "ABS plastic"],
   },
   {
     slug: "office",
     name: "Office",
     description: "Desk, chair and the small things that make a workday bearable.",
-    brands: ["Draft & Co", "Meridian Desk", "Paperweight", "Stilt"],
-    items: [
-      ["Ergonomic Desk Chair", 14900, 79900],
-      ["Standing Desk", 24900, 99900],
-      ["Desk Lamp", 2900, 14900],
-      ["Monitor Arm", 3900, 19900],
-      ["Notebook Set", 1200, 4900],
-      ["Fountain Pen", 2400, 14900],
-      ["Desk Organiser", 1900, 6900],
-      ["Laptop Stand", 2400, 9900],
-      ["Whiteboard", 2900, 12900],
-      ["Filing Cabinet", 7900, 29900],
-    ],
-    modifiers: ["Ergonomic", "Compact", "Executive", "Minimal", "Adjustable"],
-    features: ["Tool-free assembly", "Cable management", "Height adjustable", "5-year warranty"],
-    materials: ["Powder-coated steel", "Solid oak", "Recycled aluminium", "Mesh"],
   },
   {
     slug: "pet-supplies",
     name: "Pet Supplies",
     description: "Kit for the other members of the household.",
-    brands: ["Paw & Pine", "Rufflane", "Thicket", "Good Dog Co"],
-    items: [
-      ["Dog Bed", 3900, 17900],
-      ["Cat Tree", 5900, 24900],
-      ["Slow Feeder Bowl", 1400, 4900],
-      ["Leash and Collar Set", 1900, 6900],
-      ["Pet Carrier", 3900, 14900],
-      ["Scratching Post", 2400, 8900],
-      ["Grooming Brush", 1200, 3900],
-      ["Chew Toy Bundle", 1400, 4400],
-      ["Litter Box", 2400, 9900],
-      ["Pet Water Fountain", 2900, 8900],
-    ],
-    modifiers: ["Orthopaedic", "Washable", "Heavy-duty", "Calming", "Compact"],
-    features: ["Machine washable cover", "Non-slip base", "Chew resistant", "Odour resistant"],
-    materials: ["Memory foam", "Sisal rope", "Stainless steel", "Recycled fabric"],
   },
   {
     slug: "garden",
     name: "Garden",
     description: "Tools and planters for a balcony or an acre.",
-    brands: ["Rootwork", "Hedge & Hollow", "Terra Forge", "Greenshore"],
-    items: [
-      ["Raised Garden Bed", 5900, 22900],
-      ["Pruning Shears", 1900, 6900],
-      ["Watering Can", 1400, 4900],
-      ["Garden Hose", 2400, 9900],
-      ["Planter Pot Set", 1900, 7900],
-      ["Hand Tool Set", 2400, 8900],
-      ["Compost Bin", 4900, 17900],
-      ["Solar Garden Lights", 2400, 8900],
-      ["Potting Bench", 8900, 29900],
-      ["Grow Light", 2900, 12900],
-    ],
-    modifiers: ["Heavy-duty", "Weatherproof", "Compact", "Classic", "All-season"],
-    features: ["Rust resistant", "UV stable", "Frost proof", "Drainage holes"],
-    materials: ["Cedar", "Galvanised steel", "Terracotta", "Recycled plastic"],
   },
 ] as const;
+
+/**
+ * Fallback price band per category, in cents -- used only when the dataset's
+ * own `price` was null (roughly half of listings; real prices are used
+ * wherever present). Coarser than the old per-item-type ranges since there's
+ * no item-type template anymore, but still a sane band per category.
+ */
+const FALLBACK_PRICE_RANGES: Record<string, readonly [number, number]> = {
+  electronics: [1500, 50000],
+  "home-kitchen": [1000, 40000],
+  "sports-outdoors": [1000, 40000],
+  books: [700, 3000],
+  clothing: [1000, 20000],
+  beauty: [500, 6000],
+  "toys-games": [500, 15000],
+  office: [500, 30000],
+  "pet-supplies": [500, 15000],
+  garden: [500, 25000],
+};
 
 const REVIEW_AUTHORS = [
   "A. Whitfield", "Marcus L.", "Priya N.", "Dana K.", "Tom R.", "S. Okonkwo",
@@ -321,84 +198,47 @@ const REVIEW_TEMPLATES: readonly { rating: number; title: string; body: string }
 
 /* ---------------------------------------------------------------- builder */
 
-function buildDescription(
-  title: string,
-  category: CategorySeed,
-  material: string,
-  featureList: string[],
-): string {
-  const openers = [
-    `The ${title} is built for people who would rather buy once.`,
-    `A straightforward take on the ${category.name.toLowerCase()} staple, without the padding.`,
-    `We designed the ${title} around the parts people actually touch.`,
-    `Made in ${material.toLowerCase()}, the ${title} is meant to stay in service for years.`,
-  ];
-  const closers = [
-    "Backed by a two-year guarantee and a returns window that does not require an argument.",
-    "Ships flat in recyclable packaging, with no plastic inserts.",
-    "Tested against daily use rather than a spec sheet.",
-    "If it is not right, send it back within 30 days.",
-  ];
-  return [
-    pick(openers),
-    `Key features: ${featureList.join(", ").toLowerCase()}.`,
-    `Primary material is ${material.toLowerCase()}.`,
-    pick(closers),
-  ].join(" ");
-}
-
 type ProductInsert = typeof schema.products.$inferInsert;
 
-function buildProducts(categoryId: number, category: CategorySeed, perCategory: number) {
+function buildProducts(categoryId: number, category: CategorySeed): ProductInsert[] {
+  const source = AMAZON_PRODUCTS[category.slug];
+  if (!source || source.length === 0) {
+    throw new Error(
+      `No Amazon-sourced products for "${category.slug}". Run: npx tsx scripts/fetch-amazon-dataset.ts`,
+    );
+  }
+
+  const [fallbackLow, fallbackHigh] = FALLBACK_PRICE_RANGES[category.slug];
   const rows: ProductInsert[] = [];
   const usedSlugs = new Set<string>();
 
-  for (let i = 0; i < perCategory; i++) {
-    const [noun, lowCents, highCents] = category.items[i % category.items.length];
-    const brand = pick(category.brands);
-    const modifier = pick(category.modifiers);
-    const title = `${brand} ${modifier} ${noun}`;
-
-    let slug = slugify(title);
-    if (usedSlugs.has(slug)) slug = `${slug}-${i + 1}`;
+  for (const item of source) {
+    let slug = slugify(item.title);
+    if (usedSlugs.has(slug) || !slug) slug = `${slug || "product"}-${item.parentAsin.toLowerCase()}`;
     usedSlugs.add(slug);
 
-    // Price in whole cents, nudged to a .99 ending the way retail prices run.
-    const basePrice = randomInt(lowCents, highCents);
-    const priceCents = Math.max(99, Math.round(basePrice / 100) * 100 - 1);
+    const priceCents = item.priceCents ?? randomInt(fallbackLow, fallbackHigh);
 
-    // About a third of the catalogue is discounted.
+    // About a third of the catalogue is discounted, same as before.
     const discounted = random() < 0.35;
     const listPriceCents = discounted
       ? Math.round((priceCents * (1 + randomInt(10, 45) / 100)) / 100) * 100 - 1
       : null;
 
-    // Ratings skew high, as real catalogues do, but not uniformly.
-    const rating = Math.round((3.2 + random() * 1.8) * 10) / 10;
-    const reviewCount = randomInt(0, 2400);
-
-    const material = pick(category.materials);
-    const featureList = pickSome(category.features, 3);
-
     rows.push({
       slug,
-      title,
-      brand,
-      description: buildDescription(title, category, material, featureList),
+      title: item.title,
+      brand: item.brand,
+      description: item.description,
       categoryId,
       priceCents,
       listPriceCents,
-      rating,
-      reviewCount,
+      rating: item.rating ?? Math.round((3.2 + random() * 1.8) * 10) / 10,
+      reviewCount: item.reviewCount ?? randomInt(0, 2400),
       stock: random() < 0.08 ? 0 : randomInt(1, 180),
-      imageUrl: imageUrl(slug, 1),
-      extraImages: [imageUrl(slug, 2), imageUrl(slug, 3), imageUrl(slug, 4)],
-      attributes: JSON.stringify({
-        Brand: brand,
-        Material: material,
-        Features: featureList.join(", "),
-        Category: category.name,
-      }),
+      imageUrl: item.imageUrl,
+      extraImages: item.extraImages,
+      attributes: JSON.stringify({ Brand: item.brand, Category: category.name }),
       isFeatured: random() < 0.06,
     });
   }
@@ -409,8 +249,7 @@ function buildProducts(categoryId: number, category: CategorySeed, perCategory: 
 /* ------------------------------------------------------------------- main */
 
 async function main() {
-  const perCategory = 50;
-  console.log(`Seeding ${CATEGORIES.length} categories x ${perCategory} products...`);
+  console.log(`Seeding ${CATEGORIES.length} categories from Amazon Reviews 2023 data...`);
 
   // Clear catalogue tables. Dependent rows (cart items, wishlist entries,
   // reviews) cascade; orders deliberately do not, since order_items keep a
@@ -428,7 +267,9 @@ async function main() {
         slug: c.slug,
         name: c.name,
         description: c.description,
-        imageUrl: imageUrl(`category-${c.slug}`, 1, 600),
+        // The first real product image in the category -- real and
+        // correctly matched, same as every product photo now.
+        imageUrl: AMAZON_PRODUCTS[c.slug]?.[0]?.imageUrl ?? "",
         sortOrder: index,
       })),
     )
@@ -443,7 +284,7 @@ async function main() {
     const row = insertedCategories.find((c) => c.slug === category.slug);
     if (!row) throw new Error(`Category not inserted: ${category.slug}`);
 
-    const products = buildProducts(row.id, category, perCategory);
+    const products = buildProducts(row.id, category);
 
     // Chunked: a single insert of 500 rows exceeds the HTTP driver's limits.
     for (let i = 0; i < products.length; i += 50) {
@@ -454,8 +295,8 @@ async function main() {
         .returning({ id: schema.products.id });
       productTotal += inserted.length;
 
-      // A few real review rows per product, so the product page and histogram
-      // have something true to read rather than only the denormalised count.
+      // A few synthetic review rows per product, so the product page and
+      // histogram have something to read beyond the denormalised count.
       const reviewRows = inserted.flatMap(({ id }) =>
         pickSome(REVIEW_TEMPLATES, randomInt(0, 4)).map((template) => ({
           productId: id,

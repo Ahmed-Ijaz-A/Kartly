@@ -42,6 +42,7 @@ variable **names only** — never real values.
 | `npm run db:generate` | Generate a migration from the schema |
 | `npm run db:migrate` | Apply migrations to the database |
 | `npm run db:seed` | Load the catalogue (clears and re-seeds) |
+| `npm run db:fetch-amazon` | Re-sample the Amazon Reviews 2023 dataset into `scripts/amazon-products.json` |
 | `npm run db:studio` | Drizzle Studio, to browse the data |
 
 Both `lint` and `typecheck` must pass before any roadmap step is finished.
@@ -67,21 +68,34 @@ description), so keyword search needs no second service.
 
 ## Catalogue data
 
-`npm run db:seed` generates **500 products across 10 categories**, with prices
-in cents, ratings, stock levels, descriptions and seeded reviews.
+`npm run db:seed` loads **500 real products across 10 categories**, with
+prices in cents, ratings, stock levels, descriptions and seeded reviews.
 
-It is deterministic — a seeded PRNG drives every value, so re-running produces
-the same catalogue rather than a different one. It clears the catalogue tables
+It is deterministic for everything it generates — a seeded PRNG drives every
+fallback price, stock level and review selection, so re-running produces the
+same catalogue rather than a different one. It clears the catalogue tables
 first, so it is safe to re-run.
 
-Sources are free and allowed:
+**Source: the [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/)
+dataset** (McAuley Lab, UC San Diego), an academic dataset free to use for
+coursework. `npm run db:fetch-amazon` pulls a sample of real listings per
+category — title, brand, description, price/rating where present, and a real
+multi-angle photo set — into `scripts/amazon-products.json`, which
+`npm run db:seed` then loads. Title and description always come from the same
+real listing, so they can't be mismatched the way independently-generated
+text and stock photography could be.
 
-- **Product text** is generated from hand-written brand and model names in the
-  seed script. Nothing is scraped; no real retailer's copy is reproduced.
-- **Images** come from [Lorem Picsum](https://picsum.photos), free placeholder
-  photography, with URLs seeded by product slug so each product keeps a stable
-  image. These are photographs, not product shots — honest placeholders until
-  real imagery exists.
+**Trade-off, stated plainly:** this means real brand names (e.g. Fat Shark,
+SAS) and real Amazon product photography appear on listings — Kartly's own
+UI (layout, logo, colours, copy) is still entirely its own design, but the
+catalogue content itself is not invented. See
+[docs/spec.md](docs/spec.md#what-we-build) for the reasoning.
+
+Nothing is scraped from a page that disallows it: the dataset is downloaded
+directly from its own Hugging Face–hosted distribution via byte-range
+requests (not a full download — each category file is sampled, never pulled
+whole), and Amazon's own image CDN serves the photos directly (publicly
+cacheable, no hotlink protection).
 
 ## Deploying to Vercel
 

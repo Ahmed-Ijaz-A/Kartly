@@ -1,8 +1,18 @@
 # Kartly — product spec
 
-A 24-hour build of a general merchandise store. Kartly is its own brand, not a
-clone: the recon in `/recon` is studied for *mechanics and information
-hierarchy*, never copied for look, wording or logo.
+A 24-hour build of a general merchandise store. Kartly's own UI — layout,
+logo, colours, wording — is its own design, not a clone: the recon in
+`/recon` is studied for *mechanics and information hierarchy*, never copied
+for look, wording or logo.
+
+**Catalogue content is the one deliberate exception**, and it's worth being
+upfront about: product titles, brand names, descriptions and photography are
+real data from the Amazon Reviews 2023 academic dataset (see
+[tech-stack.md](tech-stack.md)), not Kartly-invented. Real brand names (e.g.
+Fat Shark, SAS) appear on product listings as a result. That trade-off was
+chosen over a fictional catalogue specifically to fix images and descriptions
+being mismatched — both now come from the same real listing, so they can't
+disagree.
 
 Judged on **speed, product judgement and UX**. Every decision below is made
 against those three, in that order of risk — a half-finished feature costs more
@@ -39,7 +49,7 @@ Each step has one job:
 ## What we build
 
 **Catalogue & browse**
-- ~500 generated products across 10 categories, with brand, price, rating, review count, stock and filterable attributes (deterministic seed script)
+- 500 real products across 10 categories (Amazon Reviews 2023 dataset), with real brand, title, description, photography, price/rating where the dataset has them, with generated fallbacks where it doesn't
 - Home: category tiles, a featured rail, a deals rail
 - Category pages, sharing the search results component
 
@@ -107,7 +117,7 @@ Each step has one job:
 | Deploy problems discovered at hour 23 | Deploy to Vercel on roadmap step 2, before any feature exists. Every later step ships to a URL that already works. |
 | Stripe webhook can't reach localhost | Build checkout against the Stripe CLI listener from the start; the deployed webhook is configured in the same step. |
 | Double orders from webhook retries | Order creation is idempotent on payment intent id, enforced by a unique constraint — not by application logic alone. |
-| Seed data too thin to make search look real | 500 products across 10 categories, generated with varied attributes, seeded in step 1. |
+| Seed data too thin to make search look real | 500 real products across 10 categories, seeded in step 1. |
 | Scope creep from the recon's density | This cut list is the contract. Anything not listed under "what we build" needs an explicit decision to add. |
 
 ## How it will be judged, and where the time goes

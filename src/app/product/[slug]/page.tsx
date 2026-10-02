@@ -230,23 +230,31 @@ export default async function ProductPage({
             </span>
           </a>
 
-          <div className="border-y border-ink-100 py-4">
-            <p className="flex flex-wrap items-baseline gap-2">
-              <span className="text-3xl font-bold text-ink-900">
+          <div className="border-y border-ink-100 py-5">
+            {/*
+              Price is the single most prominent element on this page --
+              larger and heavier than the product title above it. The
+              discounted price leads at full weight; the original price is
+              present but deliberately secondary (smaller, muted, struck
+              through), the way a shopper scans "what do I pay" before "what
+              did this used to cost".
+            */}
+            <p className="flex flex-wrap items-baseline gap-3">
+              <span className="text-5xl font-extrabold tracking-tight text-ink-900 sm:text-6xl">
                 {formatCents(product.priceCents)}
               </span>
               {percentOff > 0 && product.listPriceCents && (
                 <>
-                  <span className="text-sm text-ink-500 line-through">
+                  <span className="text-lg text-ink-500 line-through">
                     {formatCents(product.listPriceCents)}
                   </span>
-                  <span className="rounded bg-amber-accent px-2 py-0.5 text-xs font-semibold text-ink-900">
+                  <span className="rounded bg-amber-accent px-2.5 py-1 text-sm font-bold text-ink-900">
                     Save {percentOff}%
                   </span>
                 </>
               )}
             </p>
-            <div className="mt-2">
+            <div className="mt-3">
               <StockLine stock={product.stock} />
             </div>
           </div>

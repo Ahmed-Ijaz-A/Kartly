@@ -7,14 +7,12 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        // Lorem Picsum: free placeholder photography used by the seed script.
+        // Amazon's product image CDN -- real product photography from the
+        // Amazon Reviews 2023 dataset (McAuley Lab), used by the seed script.
+        // Publicly cacheable, no hotlink protection (verified: permissive
+        // CORS, 20-year cache headers).
         protocol: "https",
-        hostname: "picsum.photos",
-      },
-      {
-        // Picsum redirects to this host when serving the actual image.
-        protocol: "https",
-        hostname: "fastly.picsum.photos",
+        hostname: "m.media-amazon.com",
       },
     ],
   },
