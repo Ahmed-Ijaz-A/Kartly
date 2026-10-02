@@ -39,7 +39,7 @@ export default async function CartPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight text-ink-900">Your cart</h1>
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <section aria-label="Cart items" className="divide-y divide-ink-100 rounded-card bg-surface shadow-sm">
+        <section aria-label="Cart items" className="min-w-0 divide-y divide-ink-100 rounded-card bg-surface shadow-sm">
           {lines.map((line) => (
             <article key={line.id} className="flex gap-4 p-4 sm:p-6">
               <Link href={`/product/${line.slug}`} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md bg-surface-muted sm:h-32 sm:w-32">

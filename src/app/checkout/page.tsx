@@ -13,7 +13,12 @@ export default async function CheckoutPage() {
   await requireSession("/login?next=/checkout");
   const lines = await getCartLines();
   if (lines.length === 0) {
-    return <EmptyState title="Your cart is empty" message="Add an item before starting checkout." action={<Link href="/search" className="inline-flex rounded-md bg-ink-900 px-4 py-2 text-sm font-semibold text-ink-50">Browse products</Link>} />;
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold tracking-tight text-ink-900">Checkout</h1>
+        <EmptyState title="Your cart is empty" message="Add an item before starting checkout." action={<Link href="/search" className="inline-flex rounded-md bg-ink-900 px-4 py-2 text-sm font-semibold text-ink-50">Browse products</Link>} />
+      </div>
+    );
   }
   const totals = calculateCartTotals(lines);
   return (

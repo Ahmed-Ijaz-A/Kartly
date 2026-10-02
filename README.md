@@ -3,6 +3,8 @@
 A 24-hour build of a general merchandise store — browse, search, product, cart,
 checkout, order history.
 
+**Live:** [kartly-green.vercel.app](https://kartly-green.vercel.app)
+
 - [docs/spec.md](docs/spec.md) — the core loop, what we build, what we cut and why
 - [docs/tech-stack.md](docs/tech-stack.md) — stack and the reasoning behind it
 - [roadmap.md](roadmap.md) — ordered, verifiable steps
@@ -123,6 +125,30 @@ is shared with the deployed app.
 The build does not require a database, so a first deploy succeeds even before
 `DATABASE_URL` is set; the home page then renders setup instructions instead of
 the catalogue.
+
+## Trying checkout (Stripe test mode)
+
+Stripe is in **test mode** everywhere this app runs — no real card is ever
+charged. At the payment step, use any of
+[Stripe's published test cards](https://docs.stripe.com/testing#cards); any
+future expiry date, any 3-digit CVC, and any postal code are accepted:
+
+| Card number | Result |
+| --- | --- |
+| `4242 4242 4242 4242` | Succeeds |
+| `4000 0000 0000 0002` | Declined |
+| `4000 0025 0000 3155` | Requires authentication (3D Secure) |
+
+Locally, the webhook needs the Stripe CLI listening so a successful payment
+actually creates the order:
+
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+Paste the `whsec_...` it prints into `.env.local` as `STRIPE_WEBHOOK_SECRET`.
+On the deployed site, this is instead a webhook endpoint configured in the
+Stripe dashboard pointing at `https://<your-domain>/api/stripe/webhook`.
 
 ## Security
 

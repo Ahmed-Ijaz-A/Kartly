@@ -55,6 +55,49 @@ export function ProductDetailSkeleton() {
   );
 }
 
+/** A page's <h1> while its data is still loading. */
+export function HeadingSkeleton({ width = "w-48" }: { width?: string }) {
+  return <div className={`h-8 ${width} animate-pulse rounded bg-ink-100`} aria-hidden="true" />;
+}
+
+/**
+ * Rows of thumbnail + two text lines + a trailing price -- the shape shared
+ * by the cart, order history, order detail and wishlist lists. One skeleton
+ * for all four rather than four near-identical copies.
+ */
+export function ItemListSkeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <div className="divide-y divide-ink-100 rounded-card bg-surface shadow-sm" aria-hidden="true">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="flex gap-4 p-4 sm:p-6">
+          <div className="h-24 w-24 shrink-0 animate-pulse rounded-md bg-ink-100 sm:h-28 sm:w-28" />
+          <div className="flex-1 space-y-2 py-1">
+            <div className="h-4 w-2/3 animate-pulse rounded bg-ink-100" />
+            <div className="h-3 w-1/3 animate-pulse rounded bg-ink-100" />
+            <div className="h-3 w-1/4 animate-pulse rounded bg-ink-100" />
+          </div>
+          <div className="h-4 w-14 shrink-0 animate-pulse rounded bg-ink-100" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A generic rounded card of placeholder lines -- order summaries, address
+ * panels, account info, the payment and confirmation cards. */
+export function CardSkeleton({ lines = 4 }: { lines?: number }) {
+  return (
+    <div className="space-y-3 rounded-card bg-surface p-6 shadow-sm" aria-hidden="true">
+      {Array.from({ length: lines }, (_, i) => (
+        <div
+          key={i}
+          className={`h-4 animate-pulse rounded bg-ink-100 ${i === 0 ? "w-1/2" : "w-full"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 /** Shared empty state, so "nothing here" always offers a way out. */
 export function EmptyState({
   title,

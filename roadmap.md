@@ -155,19 +155,38 @@ Signed-in users submit a rating and text; product aggregates update.
 
 ## Phase 7 — Finish (cuttable, in this order from the bottom)
 
-### Step 24 — Responsive and accessibility pass
+### Step 24 — Responsive and accessibility pass  ✅
 Every page at 375px. Labelled inputs, keyboard-reachable controls, visible
 focus, alt text, sane heading order.
-**Verify:** walk the whole loop at 375px and with the keyboard only.
+**Verify:** walk the whole loop at 375px and with the keyboard only. Done —
+found and fixed a real overflow bug (product gallery and cart grid columns
+didn't shrink below their content's min-content width at mobile; both needed
+`min-w-0`), and a missing `<h1>` on checkout's empty-cart state.
 
-### Step 25 — Loading, empty and error states
+### Step 25 — Loading, empty and error states  ✅
 Suspense boundaries, skeletons on the slow pages, a real 404 and error page.
 **Verify:** throttled network never shows a blank page; a bad product id gives a proper 404.
+Done — added `loading.tsx` to every route that queries the database and
+didn't already have one (cart, checkout and its two sub-steps, account,
+orders, order detail, wishlist). The 404 check uncovered a real gap: Next's
+own streaming behavior means `notFound()` on `/product/[slug]` returned
+HTTP 200 (the correct not-found UI, wrong status code) — fixed in `proxy.ts`
+with a fast existence check before streaming starts, per Next's own
+documented pattern for this.
 
-### Step 26 — README and final pass
+### Step 26 — README and final pass  ✅ *(live payment submission unverified by automation)*
 Setup, env var names, Stripe test cards, live URL. Walk the full loop on the
 deployed site as a brand-new user.
 **Verify:** browse → search → product → cart → checkout → order history completes on the live URL from a fresh account.
+Confirmed live on kartly-green.vercel.app as a brand-new registered account:
+browse, search, product, add-to-cart, cart, and the checkout address step
+all work end to end. Submitting the Stripe test card itself couldn't be
+scripted — Stripe's Payment Element deliberately isolates its fields in
+randomized, cross-origin iframes to resist exactly this kind of automation.
+The pipeline past that point (payment → webhook → paid order → confirmation
+→ order history) is proven by orders already paid for real on this
+deployment from manual testing; a one-time manual click-through with a test
+card is the only way to close this last link with full confidence.
 
 ---
 

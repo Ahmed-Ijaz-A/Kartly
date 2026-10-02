@@ -15,11 +15,11 @@ export function ProductGallery({ images, title }: { images: string[]; title: str
   const active = images[activeIndex] ?? images[0];
 
   return (
-    <div className="flex flex-col-reverse gap-3 sm:flex-row">
+    <div className="flex min-w-0 flex-col-reverse gap-3 sm:flex-row">
       {images.length > 1 && (
-        <ul className="flex gap-2 sm:flex-col" role="list">
+        <ul className="flex min-w-0 gap-2 overflow-x-auto sm:flex-col sm:overflow-visible" role="list">
           {images.map((image, index) => (
-            <li key={image}>
+            <li key={image} className="shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveIndex(index)}
