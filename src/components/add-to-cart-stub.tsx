@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 /**
- * Add to cart — STUB.
+ * Add to cart — STUB..
  *
  * Deliberately does not write anything. The real cart is roadmap step 14,
  * where this becomes a Server Action that reads the session server-side and
