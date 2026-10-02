@@ -61,7 +61,7 @@ export default async function CartPage() {
             <div className="flex justify-between gap-4 border-t border-ink-100 pt-3 text-base font-semibold text-ink-900"><dt>Order total</dt><dd>{formatCents(totals.totalCents)}</dd></div>
           </dl>
           <p className="mt-4 rounded-md bg-ink-100 px-3 py-2 text-xs text-ink-800">{shippingMessage} Flat tax and shipping are confirmed at checkout.</p>
-          <button type="button" disabled className="mt-5 w-full rounded-md bg-ink-200 px-4 py-3 text-sm font-semibold text-ink-500">Checkout arrives in the next phase</button>
+          <Link href="/checkout" className="mt-5 block w-full rounded-md bg-ink-900 px-4 py-3 text-center text-sm font-semibold text-ink-50 hover:bg-ink-800">Proceed to checkout</Link>
         </aside>
       </div>
     </div>
