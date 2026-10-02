@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { ProductGrid } from "@/components/product-card";
+import { ProductRail } from "@/components/product-rail";
 import { EmptyState, RailSkeleton } from "@/components/skeletons";
 import {
   getCategories,
@@ -31,25 +31,60 @@ const HERO_MOSAIC = [
   { url: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&q=80&auto=format&fit=crop", size: "h-24 w-24" },
 ];
 
+/** One flanking mosaic column, reused mirrored on each side of the centered headline. */
+function HeroMosaicColumn({
+  images,
+  offset = "",
+  align,
+}: {
+  images: typeof HERO_MOSAIC;
+  offset?: string;
+  align: "justify-end" | "justify-start";
+}) {
+  return (
+    <div className={`hidden lg:flex lg:items-center ${align}`} aria-hidden="true">
+      <div className="flex gap-4">
+        <div className="flex flex-col gap-4">
+          {images.slice(0, 1).map(({ url, size }, i) => (
+            <div key={i} className={`relative ${size} overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/10`}>
+              <Image src={url} alt="" fill sizes="160px" className="object-cover" />
+            </div>
+          ))}
+        </div>
+        <div className={`flex flex-col gap-4 ${offset}`}>
+          {images.slice(1, 3).map(({ url, size }, i) => (
+            <div key={i} className={`relative ${size} overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/10`}>
+              <Image src={url} alt="" fill sizes="160px" className="object-cover" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Hero({ productCount, categoryCount }: { productCount: number; categoryCount: number }) {
   return (
-    <section className="overflow-hidden rounded-card bg-ink-900 px-6 py-12 text-ink-50 sm:px-10 sm:py-16">
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-center">
+    <section className="overflow-hidden rounded-card bg-ink-900 px-6 py-14 text-ink-50 sm:px-10 sm:py-20">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 lg:grid-cols-[1fr_minmax(0,38rem)_1fr]">
 
-        {/* Left — headline and CTAs */}
-        <div>
+        {/* Left flanking mosaic — desktop only, purely decorative */}
+        <HeroMosaicColumn images={HERO_MOSAIC.slice(0, 3)} offset="mt-10" align="justify-end" />
+
+        {/* Center — headline and CTAs */}
+        <div className="text-center">
           <p className="text-sm font-medium uppercase tracking-widest text-amber-accent">
             Kartly
           </p>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">
-            Everyday things,<br className="hidden sm:block" /> chosen well
+          <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+            Everyday things, chosen well
           </h1>
-          <p className="mt-4 max-w-lg text-base text-ink-200">
+          <p className="mx-auto mt-4 max-w-lg text-base text-ink-200">
             {productCount.toLocaleString("en-US")} products across {categoryCount}{" "}
             categories — electronics, home, outdoors, books and more. No endless
             aisles, just things worth owning.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               href="/search"
               className="rounded-md bg-amber-accent px-5 py-2.5 text-sm font-semibold text-ink-900 transition hover:bg-amber-accent-dark"
@@ -65,35 +100,8 @@ function Hero({ productCount, categoryCount }: { productCount: number; categoryC
           </div>
         </div>
 
-        {/* Right — staggered image mosaic (desktop only, purely decorative) */}
-        <div className="hidden lg:flex lg:items-center lg:justify-end" aria-hidden="true">
-          <div className="flex gap-4">
-            {/* Column 0 — sits at top */}
-            <div className="flex flex-col gap-4">
-              {HERO_MOSAIC.slice(0, 2).map(({ url, size }, i) => (
-                <div key={i} className={`relative ${size} overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/10`}>
-                  <Image src={url} alt="" fill sizes="160px" className="object-cover" />
-                </div>
-              ))}
-            </div>
-            {/* Column 1 — drops down */}
-            <div className="mt-10 flex flex-col gap-4">
-              {HERO_MOSAIC.slice(2, 4).map(({ url, size }, i) => (
-                <div key={i} className={`relative ${size} overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/10`}>
-                  <Image src={url} alt="" fill sizes="160px" className="object-cover" />
-                </div>
-              ))}
-            </div>
-            {/* Column 2 — slight drop */}
-            <div className="mt-4 flex flex-col gap-4">
-              {HERO_MOSAIC.slice(4, 6).map(({ url, size }, i) => (
-                <div key={i} className={`relative ${size} overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/10`}>
-                  <Image src={url} alt="" fill sizes="160px" className="object-cover" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* Right flanking mosaic — mirror of the left */}
+        <HeroMosaicColumn images={HERO_MOSAIC.slice(3, 6)} offset="mt-10" align="justify-start" />
 
       </div>
     </section>
@@ -172,36 +180,40 @@ function Rail({
     <section>
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h2 className="text-lg font-semibold text-ink-900">{title}</h2>
+          {/* The heading itself is the "see all" link now that the rail
+              scrolls in place -- a separate text link would duplicate it. */}
+          <Link href={href} className="group inline-flex items-baseline gap-1.5">
+            <h2 className="text-lg font-semibold text-ink-900 group-hover:underline">{title}</h2>
+            <span className="text-sm text-ink-500 group-hover:text-ink-900">See all →</span>
+          </Link>
           <p className="text-sm text-ink-700">{description}</p>
         </div>
-        <Link
-          href={href}
-          className="text-sm font-medium text-ink-700 underline underline-offset-4 hover:text-ink-900"
-        >
-          See all
-        </Link>
       </div>
-      <ProductGrid products={products} priorityCount={priorityCount} />
+      <ProductRail products={products} priorityCount={priorityCount} />
     </section>
   );
 }
 
+// Fetched well past the ~5 cards that fit one screen, so the rail's scroll
+// arrow has somewhere real to take you -- this is what replaces the old
+// "see more" button's job, without leaving the home page to do it.
+const RAIL_FETCH_COUNT = 10;
+
 async function FeaturedRail() {
-  const products = await getFeaturedProducts(4);
+  const products = await getFeaturedProducts(RAIL_FETCH_COUNT);
   return (
     <Rail
       title="Picked by us"
       description="A short list we would actually recommend."
       href="/search?sort=rating"
       products={products}
-      priorityCount={4}
+      priorityCount={5}
     />
   );
 }
 
 async function DealsRail() {
-  const products = await getDealProducts(4);
+  const products = await getDealProducts(RAIL_FETCH_COUNT);
   return (
     <Rail
       title="Biggest savings"
@@ -213,7 +225,7 @@ async function DealsRail() {
 }
 
 async function TopRatedRail() {
-  const products = await getTopRatedProducts(4);
+  const products = await getTopRatedProducts(RAIL_FETCH_COUNT);
   return (
     <Rail
       title="Highly rated, widely bought"

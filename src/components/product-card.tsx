@@ -10,9 +10,12 @@ import { RatingStars } from "./rating-stars";
 export function ProductCard({
   product,
   priority = false,
+  className = "",
 }: {
   product: ProductCardData;
   priority?: boolean;
+  /** Extra classes on the root <li> -- e.g. a fixed width for a horizontal rail. */
+  className?: string;
 }) {
   const percentOff = product.listPriceCents
     ? discountPercent(product.priceCents, product.listPriceCents)
@@ -20,7 +23,7 @@ export function ProductCard({
   const outOfStock = product.stock === 0;
 
   return (
-    <li className="group relative flex flex-col overflow-hidden rounded-card bg-surface shadow-sm transition hover:shadow-md">
+    <li className={`group relative flex flex-col overflow-hidden rounded-card bg-surface shadow-sm transition hover:shadow-md ${className}`}>
       <div className="relative aspect-square overflow-hidden bg-surface-muted">
         <Image
           src={product.imageUrl}

@@ -31,3 +31,10 @@ body {
   background-color: var(--color-surface-muted);
   color: var(--color-ink-900);
 }
+
+/* Subtle hint that a product rail scrolls further -- paired with
+   motion-safe: in markup so prefers-reduced-motion disables it. */
+@keyframes rail-nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
