@@ -38,10 +38,14 @@ function getDb(): Database {
  * client is only built on first property access.
  */
 export const db = new Proxy({} as Database, {
-  get(_target, property, receiver) {
+  get(_target, property) {
     const instance = getDb();
-    const value = Reflect.get(instance, property, receiver);
-    // Methods must stay bound to the real client, not to the proxy.
+    // Deliberately NOT forwarding the proxy as the receiver: a getter on the
+    // real class (e.g. drizzle's db.query.*) would then run with `this` bound
+    // to this proxy instead of the real instance, and throw on any private
+    // class field it touches. `instance` as receiver keeps `this` real for
+    // getters, same as the explicit .bind below does for methods.
+    const value = Reflect.get(instance, property, instance);
     return typeof value === "function" ? value.bind(instance) : value;
   },
 });
