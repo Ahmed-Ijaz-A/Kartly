@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "m.media-amazon.com",
       },
+      {
+        // Unsplash CDN -- used for category tile images (clean, professional
+        // photography with generic subjects per category).
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
     ],
   },
 };

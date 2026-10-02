@@ -3,7 +3,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Geist } from "next/font/google";
 
+import { logoutAction } from "@/app/actions/auth";
 import { SearchBox } from "@/components/search-box";
+import { getSession } from "@/lib/session";
 
 import "./globals.css";
 
@@ -18,9 +20,14 @@ export const metadata: Metadata = {
     "Kartly is a general merchandise store: electronics, home, outdoors, books and more.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Read once per request, here, from the verified session cookie only --
+  // this is purely for the header greeting, not an auth decision. Each
+  // protected page still calls requireSession() itself.
+  const session = await getSession();
+
   return (
     <html lang="en">
       {/*
@@ -43,7 +50,7 @@ export default function RootLayout({
         </a>
 
         <header className="sticky top-0 z-40 bg-ink-900 text-ink-50">
-          <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
+          <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6 lg:px-10">
             <Link
               href="/"
               className="text-xl font-bold tracking-tight"
@@ -59,21 +66,36 @@ export default function RootLayout({
               </Suspense>
             </div>
 
-            <nav className="order-2 ml-auto flex items-center gap-5 text-sm sm:order-3">
-              <span className="text-ink-300">Account — step 12</span>
+            <nav className="order-2 ml-auto flex items-center gap-4 text-sm sm:order-3">
+              {session ? (
+                <>
+                  <Link href="/account" className="hover:text-amber-accent">
+                    Hello, {session.name.split(" ")[0]}
+                  </Link>
+                  <form action={logoutAction}>
+                    <button type="submit" className="text-ink-300 hover:text-amber-accent">
+                      Sign out
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <Link href="/login" className="hover:text-amber-accent">
+                  Sign in
+                </Link>
+              )}
               <span className="text-ink-300">Cart — step 14</span>
             </nav>
           </div>
         </header>
 
-        <main id="main" className="mx-auto max-w-[1600px] px-4 py-8">
+        <main id="main" className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-10">
           {children}
         </main>
 
         <footer className="mt-16 border-t border-ink-100 bg-surface">
-          <div className="mx-auto max-w-[1600px] px-4 py-8 text-sm text-ink-700">
-            Kartly — a 24-hour build. Product imagery is placeholder photography
-            from Lorem Picsum.
+          <div className="mx-auto max-w-[1600px] px-4 py-8 text-sm text-ink-700 sm:px-6 lg:px-10">
+            Kartly — a 24-hour build. Catalogue content is real listing data
+            from the Amazon Reviews 2023 dataset.
           </div>
         </footer>
       </body>

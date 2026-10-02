@@ -159,6 +159,35 @@ const CATEGORIES: readonly CategorySeed[] = [
 ] as const;
 
 /**
+ * Category tile images — one stable Unsplash CDN URL per category.
+ * Clean professional photography with a generic subject that clearly
+ * communicates the category at a glance. Using direct photo IDs so the
+ * URL is stable and doesn't require an API key.
+ */
+const CATEGORY_IMAGES: Record<string, string> = {
+  electronics:
+    "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=800&q=80&auto=format&fit=crop",
+  "home-kitchen":
+    "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80&auto=format&fit=crop",
+  "sports-outdoors":
+    "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800&q=80&auto=format&fit=crop",
+  books:
+    "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800&q=80&auto=format&fit=crop",
+  clothing:
+    "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=800&q=80&auto=format&fit=crop",
+  beauty:
+    "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&q=80&auto=format&fit=crop",
+  "toys-games":
+    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&auto=format&fit=crop",
+  office:
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80&auto=format&fit=crop",
+  "pet-supplies":
+    "https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=800&q=80&auto=format&fit=crop",
+  garden:
+    "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&q=80&auto=format&fit=crop",
+};
+
+/**
  * Fallback price band per category, in cents -- used only when the dataset's
  * own `price` was null (roughly half of listings; real prices are used
  * wherever present). Coarser than the old per-item-type ranges since there's
@@ -267,9 +296,7 @@ async function main() {
         slug: c.slug,
         name: c.name,
         description: c.description,
-        // The first real product image in the category -- real and
-        // correctly matched, same as every product photo now.
-        imageUrl: AMAZON_PRODUCTS[c.slug]?.[0]?.imageUrl ?? "",
+        imageUrl: CATEGORY_IMAGES[c.slug] ?? "",
         sortOrder: index,
       })),
     )

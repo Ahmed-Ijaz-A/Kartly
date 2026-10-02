@@ -15,33 +15,86 @@ import {
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Six Unsplash images used purely as decorative mosaic in the hero.
+ * Same stable URLs already approved in next.config.ts for category tiles.
+ */
+const HERO_MOSAIC = [
+  // col 0 — no offset
+  { url: "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=300&q=80&auto=format&fit=crop", size: "h-32 w-32" },
+  { url: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&q=80&auto=format&fit=crop", size: "h-24 w-24" },
+  // col 1 — drops down (mt-10)
+  { url: "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=300&q=80&auto=format&fit=crop", size: "h-24 w-24" },
+  { url: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&q=80&auto=format&fit=crop", size: "h-32 w-32" },
+  // col 2 — slight drop (mt-4)
+  { url: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=300&q=80&auto=format&fit=crop", size: "h-28 w-28" },
+  { url: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&q=80&auto=format&fit=crop", size: "h-24 w-24" },
+];
+
 function Hero({ productCount, categoryCount }: { productCount: number; categoryCount: number }) {
   return (
     <section className="overflow-hidden rounded-card bg-ink-900 px-6 py-12 text-ink-50 sm:px-10 sm:py-16">
-      <p className="text-sm font-medium uppercase tracking-widest text-amber-accent">
-        Kartly
-      </p>
-      <h1 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight sm:text-5xl">
-        Everyday things, chosen well
-      </h1>
-      <p className="mt-4 max-w-xl text-base text-ink-200">
-        {productCount.toLocaleString("en-US")} products across {categoryCount}{" "}
-        categories — electronics, home, outdoors, books and more. No endless
-        aisles, just things worth owning.
-      </p>
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Link
-          href="/search"
-          className="rounded-md bg-amber-accent px-5 py-2.5 text-sm font-semibold text-ink-900 transition hover:bg-amber-accent-dark"
-        >
-          Browse everything
-        </Link>
-        <Link
-          href="/search?sort=price-asc&instock=1"
-          className="rounded-md border border-ink-300 px-5 py-2.5 text-sm font-semibold text-ink-50 transition hover:bg-ink-800"
-        >
-          Best value first
-        </Link>
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-center">
+
+        {/* Left — headline and CTAs */}
+        <div>
+          <p className="text-sm font-medium uppercase tracking-widest text-amber-accent">
+            Kartly
+          </p>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">
+            Everyday things,<br className="hidden sm:block" /> chosen well
+          </h1>
+          <p className="mt-4 max-w-lg text-base text-ink-200">
+            {productCount.toLocaleString("en-US")} products across {categoryCount}{" "}
+            categories — electronics, home, outdoors, books and more. No endless
+            aisles, just things worth owning.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/search"
+              className="rounded-md bg-amber-accent px-5 py-2.5 text-sm font-semibold text-ink-900 transition hover:bg-amber-accent-dark"
+            >
+              Browse everything
+            </Link>
+            <Link
+              href="/search?sort=price-asc&instock=1"
+              className="rounded-md border border-ink-300 px-5 py-2.5 text-sm font-semibold text-ink-50 transition hover:bg-ink-800"
+            >
+              Best value first
+            </Link>
+          </div>
+        </div>
+
+        {/* Right — staggered image mosaic (desktop only, purely decorative) */}
+        <div className="hidden lg:flex lg:items-center lg:justify-end" aria-hidden="true">
+          <div className="flex gap-4">
+            {/* Column 0 — sits at top */}
+            <div className="flex flex-col gap-4">
+              {HERO_MOSAIC.slice(0, 2).map(({ url, size }, i) => (
+                <div key={i} className={`relative ${size} overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/10`}>
+                  <Image src={url} alt="" fill sizes="160px" className="object-cover" />
+                </div>
+              ))}
+            </div>
+            {/* Column 1 — drops down */}
+            <div className="mt-10 flex flex-col gap-4">
+              {HERO_MOSAIC.slice(2, 4).map(({ url, size }, i) => (
+                <div key={i} className={`relative ${size} overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/10`}>
+                  <Image src={url} alt="" fill sizes="160px" className="object-cover" />
+                </div>
+              ))}
+            </div>
+            {/* Column 2 — slight drop */}
+            <div className="mt-4 flex flex-col gap-4">
+              {HERO_MOSAIC.slice(4, 6).map(({ url, size }, i) => (
+                <div key={i} className={`relative ${size} overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/10`}>
+                  <Image src={url} alt="" fill sizes="160px" className="object-cover" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
   );
