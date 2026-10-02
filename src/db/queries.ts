@@ -146,6 +146,42 @@ export async function searchProducts(filters: SearchFilters): Promise<SearchResu
   };
 }
 
+export type SearchSuggestion = {
+  id: number;
+  slug: string;
+  title: string;
+  brand: string;
+  priceCents: number;
+  imageUrl: string;
+};
+
+/**
+ * Top product matches for the search box's as-you-type dropdown. Reuses the
+ * exact same prefix tsquery as the full search page, just ranked and capped
+ * short -- this is a preview of the real search, not a separate feature.
+ */
+export async function getSearchSuggestions(rawQuery: string, limit = 6): Promise<SearchSuggestion[]> {
+  const tsQuery = buildTsQuery(rawQuery);
+  if (!tsQuery) return [];
+
+  return db
+    .select({
+      id: products.id,
+      slug: products.slug,
+      title: products.title,
+      brand: products.brand,
+      priceCents: products.priceCents,
+      imageUrl: products.imageUrl,
+    })
+    .from(products)
+    .where(sql`${searchVector} @@ to_tsquery('english', ${tsQuery})`)
+    .orderBy(
+      desc(sql`ts_rank(${searchVector}, to_tsquery('english', ${tsQuery}))`),
+      desc(products.rating),
+    )
+    .limit(limit);
+}
+
 /* ------------------------------------------------------------- home page */
 
 export async function getCategories() {
